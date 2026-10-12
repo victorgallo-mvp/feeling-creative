@@ -1,4 +1,6 @@
-export const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+// Aceita VITE_API_URL com ou sem "https://" e sem barra final.
+const raw = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '');
+export const API_URL = raw && !/^https?:\/\//.test(raw) ? `https://${raw}` : raw;
 const TOKEN_KEY = 'feeling_token';
 
 export const auth = {
