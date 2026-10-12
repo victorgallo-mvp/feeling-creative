@@ -49,7 +49,7 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   res.status(500).json({ error: 'Erro interno. Tente novamente.' });
 });
 
-app.listen(config.port, () => {
+app.listen(config.port, "0.0.0.0", () => {
   console.log(`API em ${config.apiUrl} (porta ${config.port}) · uploads em ${path.resolve(storageRoot)}`);
   scheduleAutoApprove();
   console.log(`Job de auto-aprovação agendado: "${config.autoApproveCron}" (America/Sao_Paulo)`);

@@ -1,11 +1,13 @@
 import pg from 'pg';
 import { config } from './config.js';
 
+// SSL só quando a URL pede (sslmode=require) ou DATABASE_SSL=true.
+// O Postgres interno do Railway (postgres.railway.internal) não aceita SSL.
+const wantSsl = /sslmode=require/.test(config.databaseUrl) || process.env.DATABASE_SSL === 'true';
+
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
-  ssl: config.databaseUrl.includes('railway') || config.databaseUrl.includes('sslmode=require')
-    ? { rejectUnauthorized: false }
-    : undefined,
+  ssl: wantSsl ? { rejectUnauthorized: false } : undefined,
 });
 
 // Datas (DATE) voltam como string 'YYYY-MM-DD' em vez de Date com fuso
