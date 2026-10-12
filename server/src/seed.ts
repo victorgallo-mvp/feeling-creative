@@ -1,7 +1,7 @@
 /**
- * Seed de desenvolvimento: 1 gestor (admin), 1 designer, 2 clientes,
+ * Seed: 1 gestor (admin) sempre. Em desenvolvimento também 1 designer, 2 clientes e
  * 1 lote do mês atual com 8 artes placeholder (imagens geradas via sharp).
- * Idempotente: não duplica se o admin já existir.
+ * Idempotente: não duplica se o admin já existir. Roda no start do serviço.
  */
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
@@ -14,6 +14,8 @@ import { tmpDir } from './services/storage/index.js';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@feeling.com.br';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'feeling123';
+// Em produção (NODE_ENV=production) o seed cria só o admin. SEED_EXAMPLES=true força os exemplos.
+const EXAMPLES = process.env.SEED_EXAMPLES ? process.env.SEED_EXAMPLES === 'true' : process.env.NODE_ENV !== 'production';
 
 const PALETTE = ['#f97316', '#0ea5e9', '#22c55e', '#a855f7', '#ef4444', '#eab308', '#14b8a6', '#ec4899'];
 
@@ -39,6 +41,10 @@ async function main() {
   }
   const hash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   const admin = await one(`INSERT INTO users (name, email, password_hash, role) VALUES ('Admin Feeling', $1, $2, 'gestor') RETURNING id`, [ADMIN_EMAIL, hash]);
+  if (!EXAMPLES) {
+    console.log(`Seed mínimo ok: admin ${ADMIN_EMAIL} criado (sem dados de exemplo).`);
+    return;
+  }
   const designer = await one(`INSERT INTO users (name, email, password_hash, role) VALUES ('Designer Exemplo', 'designer@feeling.com.br', $1, 'designer') RETURNING id`, [hash]);
 
   const c1 = await one(

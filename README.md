@@ -45,7 +45,8 @@ Scripts úteis: `npm run migrate -w server` / `npm run migrate:down -w server`, 
    - `FRONTEND_URL` = URL do front na Vercel (usada no link do cliente e no CORS)
    - `STORAGE_PATH=/data`, `MAX_UPLOAD_MB=200`, `AUTO_APPROVE_CRON=0 9 * * *`
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` para o seed
-5. Depois do primeiro deploy, rode o seed uma vez: `railway run npm run seed` (ou pelo shell do serviço). Em produção o seed cria também os dois clientes de exemplo; apague-os pelo painel se não quiser.
+5. O start do serviço roda as migrations e o seed antes de subir a API. Em produção (`NODE_ENV=production`, padrão do Nixpacks) o seed cria só o admin definido em `ADMIN_EMAIL`/`ADMIN_PASSWORD`; é idempotente, não recria nada se o admin já existir. `SEED_EXAMPLES=true` força os clientes e artes de exemplo.
+6. O domínio público precisa apontar para a mesma porta em que a API escuta: a variável `PORT` que o Railway injeta (normalmente 8080). Confira em Settings, Networking.
 
 ### Front na Vercel
 
