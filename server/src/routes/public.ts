@@ -24,8 +24,9 @@ publicRouter.get('/:token', async (req, res) => {
   const b = await loadBatch(req.params.token);
   if (!b.viewed_at) {
     await tx(async (db) => {
-      await query(`UPDATE batches SET viewed_at = now() WHERE id = $1 AND viewed_at IS NULL`, [b.id], db);
-      await logEvent({ batch_id: b.id, kind: 'link_viewed', payload: { ua: req.headers['user-agent'] ?? null } }, db);
+      // RETURNING garante um único evento mesmo com dois GETs simultâneos na primeira abertura
+      const r = await query(`UPDATE batches SET viewed_at = now() WHERE id = $1 AND viewed_at IS NULL RETURNING id`, [b.id], db);
+      if (r.length) await logEvent({ batch_id: b.id, kind: 'link_viewed', payload: { ua: req.headers['user-agent'] ?? null } }, db);
     });
   }
   const creatives = await creativesOfBatch(b.id);
@@ -54,35 +55,47 @@ publicRouter.post('/:token/decisions', async (req, res) => {
   const cr = await one(`SELECT * FROM creatives WHERE id = $1 AND batch_id = $2`, [d.creative_id, b.id]);
   if (!cr) throw notFound('Arte não encontrada');
   if (cr.current_version !== d.version) throw badRequest('Essa arte tem uma versão mais nova. Recarregue a página.');
-  if (cr.status !== 'pending') return res.json({ ok: true, already: true, status: cr.status });
 
-  await tx(async (db) => {
+  // A troca de status é atômica: só quem sair de 'pending' registra decisão e evento.
+  // Protege contra dois responsáveis decidindo a mesma arte ao mesmo tempo.
+  const applied = await tx(async (db) => {
+    const upd = await query(
+      `UPDATE creatives SET status = $2 WHERE id = $1 AND status = 'pending' AND current_version = $3 RETURNING id`,
+      [cr.id, d.action, d.version], db,
+    );
+    if (!upd.length) return false;
     await query(
       `INSERT INTO decisions (creative_id, version, action, reason_category, comment, source)
        VALUES ($1,$2,$3,$4,$5,'client') ON CONFLICT (creative_id, version) DO NOTHING`,
       [cr.id, d.version, d.action, d.action === 'rejected' ? d.reason_category : null, d.comment?.trim() || null], db,
     );
-    await query(`UPDATE creatives SET status = $2 WHERE id = $1`, [cr.id, d.action], db);
     await logEvent({
       batch_id: b.id, creative_id: cr.id,
       kind: d.action === 'approved' ? 'creative_approved' : 'creative_rejected',
       payload: { version: d.version, reason_category: d.reason_category ?? null, comment: d.comment?.trim() || null },
     }, db);
+    return true;
   });
+  if (!applied) {
+    const now = await one(`SELECT status FROM creatives WHERE id = $1`, [cr.id]);
+    return res.json({ ok: true, already: true, status: now?.status ?? cr.status });
+  }
   await recomputeBatchStatus(b.id);
   res.json({ ok: true, status: d.action });
 });
 
 publicRouter.post('/:token/submit', async (req, res) => {
   const b = await loadBatch(req.params.token);
-  const [c] = await query(
-    `SELECT count(*) FILTER (WHERE status IN ('approved','auto_approved'))::int AS approved,
-            count(*) FILTER (WHERE status = 'rejected')::int AS rejected,
-            count(*) FILTER (WHERE status = 'pending')::int AS pending
-       FROM creatives WHERE batch_id = $1`, [b.id]);
-  await tx(async (db) => {
+  const result = await tx(async (db) => {
+    const [c] = await query(
+      `SELECT count(*) FILTER (WHERE status IN ('approved','auto_approved'))::int AS approved,
+              count(*) FILTER (WHERE status = 'rejected')::int AS rejected,
+              count(*) FILTER (WHERE status = 'pending')::int AS pending
+         FROM creatives WHERE batch_id = $1`, [b.id], db);
+    if (c.pending > 0) throw badRequest(`Ainda há ${c.pending} arte(s) sem resposta.`);
     await query(`UPDATE batches SET submitted_at = now() WHERE id = $1`, [b.id], db);
     await logEvent({ batch_id: b.id, kind: 'batch_submitted', payload: c }, db);
+    return c;
   });
-  res.json({ ok: true, ...c });
+  res.json({ ok: true, ...result });
 });

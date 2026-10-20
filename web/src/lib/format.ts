@@ -10,7 +10,7 @@ export const REASON_LABEL: Record<RejectReason, string> = { texto_legenda: 'Text
 
 export const EVENT_LABEL: Record<string, string> = {
   batch_created: 'Lote criado', kanban_moved: 'Movido no Kanban', link_sent: 'Link enviado ao cliente', link_viewed: 'Link aberto pelo cliente',
-  batch_submitted: 'Cliente enviou a aprovação', creative_uploaded: 'Arte enviada', version_uploaded: 'Nova versão enviada',
+  batch_submitted: 'Cliente enviou a aprovação', creative_uploaded: 'Arte enviada', version_uploaded: 'Nova versão enviada', creative_edited: 'Legenda/tipo editados',
   creative_approved: 'Aprovada pelo cliente', creative_rejected: 'Recusada pelo cliente', creative_auto_approved: 'Auto-aprovada (prazo)',
 };
 

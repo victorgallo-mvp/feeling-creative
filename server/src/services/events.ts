@@ -2,7 +2,7 @@ import { query, type Queryable, pool } from '../db.js';
 
 export type EventKind =
   | 'batch_created' | 'kanban_moved' | 'link_sent' | 'link_viewed' | 'batch_submitted'
-  | 'creative_uploaded' | 'version_uploaded'
+  | 'creative_uploaded' | 'version_uploaded' | 'creative_edited'
   | 'creative_approved' | 'creative_rejected' | 'creative_auto_approved';
 
 export async function logEvent(

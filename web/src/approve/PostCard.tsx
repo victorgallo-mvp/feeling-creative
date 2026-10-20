@@ -27,7 +27,7 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
         <span className="text-neutral-400">•••</span>
       </div>
 
-      <div className={`relative w-full bg-neutral-100 ${isStory ? 'aspect-[9/16] max-h-[52vh]' : 'aspect-[4/5]'} overflow-hidden`}>
+      <div className={`relative w-full shrink-0 bg-neutral-100 ${isStory ? 'aspect-[9/16] max-h-[50vh]' : 'aspect-[4/5] max-h-[48vh]'} overflow-hidden`}>
         {asset?.mime.startsWith('video') ? (
           <video src={asset.url} controls playsInline preload="metadata" className="h-full w-full object-contain" onPointerDownCapture={(e) => e.stopPropagation()} />
         ) : (
@@ -51,7 +51,7 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
       <div className="flex items-center gap-4 px-3 pt-2 text-neutral-800">
         <HeartIcon /><CommentIcon /><SendIcon /><span className="flex-1" /><BookmarkIcon />
       </div>
-      <div className={`px-3 pb-3 pt-1.5 text-sm ${compact ? '' : 'min-h-14'}`}>
+      <div className={`min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-1.5 text-sm ${compact ? '' : 'min-h-14'}`} onPointerDownCapture={(e) => { if (expanded) e.stopPropagation(); }}>
         <span className="font-semibold">{client.instagram_handle ? client.instagram_handle : client.name} </span>
         <span className="whitespace-pre-wrap text-neutral-800">{expanded || !long ? c.caption : c.caption.slice(0, 110).trimEnd() + '…'}</span>
         {long && !expanded && <button onClick={() => setExpanded(true)} onPointerDownCapture={(e) => e.stopPropagation()} className="ml-1 text-neutral-500">ver mais</button>}

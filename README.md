@@ -63,13 +63,17 @@ Depois que a Vercel der o domínio, volte no Railway e preencha `FRONTEND_URL`.
 1. Designer cria o cliente (nome, @, WhatsApp, responsáveis) e o lote do mês.
 2. No lote, arrasta os arquivos: cada arquivo vira uma arte (ou usa **+ Carrossel** para várias imagens em uma arte). Preenche legenda, tipo e data prevista em cada card.
 3. Gestor clica **Gerar link + mensagem**: o sistema cria o token, monta a mensagem (template em Configurações, com `{cliente}` `{link}` `{qtd_artes}`) e abre o WhatsApp via `wa.me`. O lote vai para **Enviado para aprovação**.
-4. Cliente abre o link no celular, desliza cada card (direita aprova, esquerda abre motivo + comentário), vê a grade do feed e envia. Cada swipe é salvo na hora; se ficar sem rede, a resposta fica guardada no navegador e é reenviada na próxima abertura.
+4. Cliente abre o link no celular, desliza cada card (direita aprova, esquerda abre motivo + comentário), vê a grade do feed e envia. Cada swipe é salvo na hora; se ficar sem rede, a resposta fica guardada no navegador e é reenviada na próxima abertura. O gesto decide pela distância (40% da largura do card, ou 22% num flick rápido), não pela velocidade, e um arrasto que começa vertical não vira swipe. "Enviar aprovação" só é aceito quando não há arte pendente.
 5. Recusas aparecem em **Recusas** no painel. O designer sobe a v2 na arte; ela volta a pendente e o mesmo link passa a mostrar só o que está pendente.
 6. Quando 100% das artes vigentes estão aprovadas, o lote vai sozinho para **Aprovado**; o gestor move para **Programado** manualmente.
 
 ### Kanban
 
-`Briefing`, `Em produção` e `Programado` são manuais (arrastar). `Enviado para aprovação` e `Aprovado` são automáticos. Cartão em aprovação há mais de `KANBAN_STUCK_DAYS` (3) dias fica marcado em vermelho.
+`Briefing`, `Em produção` e `Programado` são manuais (arrastar). `Enviado para aprovação` e `Aprovado` são automáticos. Se um lote aprovado ou programado volta a ter arte pendente (nova versão, arte nova ou legenda editada), ele retorna sozinho para `Enviado para aprovação`. Cartão em aprovação há mais de `KANBAN_STUCK_DAYS` (3) dias fica marcado em vermelho.
+
+Pode haver mais de um lote por cliente no mesmo mês; o lote tem um nome opcional (ex.: "Black Friday") que aparece no Kanban, no link do cliente e no placeholder `{lote}` da mensagem.
+
+**Edição depois da aprovação:** legenda e tipo fazem parte do que o cliente aprovou. Mudar um deles numa arte já decidida devolve a arte para pendente e registra o evento `creative_edited`. Data prevista e ordem não afetam a aprovação.
 
 ### Auto-aprovação
 

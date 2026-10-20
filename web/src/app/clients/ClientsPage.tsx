@@ -68,9 +68,18 @@ function ClientModal({ client, onClose }: { client: Client | 'new' | null; onClo
     mutationFn: async () => {
       const body = { ...f, designer_id: f.designer_id || null, manager_id: f.manager_id || null };
       const saved = client === 'new' ? await api.post<Client>('/api/clients', body) : await api.put<Client>(`/api/clients/${(client as Client).id}`, body);
-      if (logo) { const fd = new FormData(); fd.append('logo', logo); await api.post(`/api/clients/${saved.id}/logo`, fd); }
+      if (logo) {
+        const fd = new FormData(); fd.append('logo', logo);
+        try { await api.post(`/api/clients/${saved.id}/logo`, fd); }
+        catch (e) { return { logoError: e instanceof Error ? e.message : 'Falha ao enviar a logo' }; }
+      }
+      return { logoError: null };
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['clients'] }); toast('Cliente salvo'); onClose(); },
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      if (r.logoError) toast(`Cliente salvo, mas a logo não foi aceita: ${r.logoError}`, 'error'); else toast('Cliente salvo');
+      onClose();
+    },
     onError: toastError,
   });
   const set = (k: keyof typeof f, v: any) => setF((s) => ({ ...s, [k]: v }));
@@ -87,7 +96,7 @@ function ClientModal({ client, onClose }: { client: Client | 'new' | null; onClo
           <Field label="Designer"><Select value={f.designer_id} onChange={(e) => set('designer_id', e.target.value ? Number(e.target.value) : '')}><option value="">—</option>{users.data?.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
           <Field label="Gestor"><Select value={f.manager_id} onChange={(e) => set('manager_id', e.target.value ? Number(e.target.value) : '')}><option value="">—</option>{users.data?.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</Select></Field>
         </div>
-        <Field label="Logo" hint="JPG, PNG ou WebP"><Input type="file" accept="image/*" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} /></Field>
+        <Field label="Logo" hint="JPG, PNG ou WebP"><Input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => setLogo(e.target.files?.[0] ?? null)} /></Field>
         <div className="rounded-lg bg-neutral-50 p-3">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.auto_approve_enabled} onChange={(e) => set('auto_approve_enabled', e.target.checked)} /> Auto-aprovação por prazo</label>
           <div className="mt-2 flex items-center gap-2 text-sm text-neutral-600">Aprovar automaticamente após <Input type="number" min={1} max={60} className="w-20" value={f.auto_approve_days} onChange={(e) => set('auto_approve_days', Number(e.target.value))} /> dias sem resposta</div>

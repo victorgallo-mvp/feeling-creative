@@ -62,6 +62,11 @@ creativesRouter.post('/batches/:batchId/creatives', upload.array('files', 40), a
   }
 });
 
+/**
+ * Edição de legenda/tipo/data. Legenda e tipo fazem parte do que o cliente aprovou:
+ * mudar um deles numa arte já decidida devolve a arte para pendente e registra o evento.
+ * Data e ordem não afetam a aprovação.
+ */
 creativesRouter.put('/creatives/:id', async (req, res) => {
   const b = z.object({
     caption: z.string().optional(),
@@ -71,12 +76,29 @@ creativesRouter.put('/creatives/:id', async (req, res) => {
   }).parse(req.body);
   const cur = await one(`SELECT * FROM creatives WHERE id = $1`, [req.params.id]);
   if (!cur) throw notFound('Arte não encontrada');
-  await query(
-    `UPDATE creatives SET caption=$2, type=$3, scheduled_date=$4, sort_order=$5 WHERE id=$1`,
-    [cur.id, b.caption ?? cur.caption, b.type ?? cur.type, b.scheduled_date === undefined ? cur.scheduled_date : (b.scheduled_date || null), b.sort_order ?? cur.sort_order],
-  );
+  const caption = b.caption ?? cur.caption;
+  const type = b.type ?? cur.type;
+  if (type !== cur.type) {
+    const mimes = await query<{ mime: string }>(
+      `SELECT a.mime FROM creative_assets a JOIN creative_versions v ON v.id = a.version_id WHERE v.creative_id = $1 AND v.version = $2`, [cur.id, cur.current_version]);
+    const hasVideo = mimes.some((m) => m.mime.startsWith('video'));
+    if (type === 'video' && !hasVideo) throw badRequest('Tipo vídeo exige um arquivo MP4. Suba uma nova versão com o vídeo.');
+    if (type !== 'video' && hasVideo) throw badRequest('Essa arte tem vídeo; o tipo precisa ser vídeo.');
+  }
+  const contentChanged = caption !== cur.caption || type !== cur.type;
+  const reopen = contentChanged && cur.status !== 'pending';
+  await tx(async (db) => {
+    await query(
+      `UPDATE creatives SET caption=$2, type=$3, scheduled_date=$4, sort_order=$5, status = CASE WHEN $6 THEN 'pending'::creative_status ELSE status END WHERE id=$1`,
+      [cur.id, caption, type, b.scheduled_date === undefined ? cur.scheduled_date : (b.scheduled_date || null), b.sort_order ?? cur.sort_order, reopen], db,
+    );
+    if (contentChanged) {
+      await logEvent({ batch_id: cur.batch_id, creative_id: cur.id, kind: 'creative_edited', payload: { version: cur.current_version, fields: [caption !== cur.caption && 'caption', type !== cur.type && 'type'].filter(Boolean), reopened: reopen, previous_status: cur.status }, actor_id: req.user!.id }, db);
+    }
+  });
+  if (reopen) await recomputeBatchStatus(cur.batch_id);
   const all = await creativesOfBatch(cur.batch_id);
-  res.json(all.find((c) => c.id === cur.id));
+  res.json({ ...all.find((c) => c.id === cur.id), reopened: reopen });
 });
 
 /** Reordena os assets (carrossel) da versão vigente. */

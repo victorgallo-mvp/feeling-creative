@@ -75,11 +75,14 @@ clientsRouter.post('/:id/logo', logoUpload.single('logo'), async (req, res) => {
   const file = req.file;
   if (!file) throw badRequest('Envie uma imagem JPG, PNG ou WebP');
   try {
-    const key = `clients/${req.params.id}/logo_${crypto.randomUUID().slice(0, 8)}.webp`;
+    const id = z.coerce.number().int().parse(req.params.id);
+    const exists = await one(`SELECT logo_key FROM clients WHERE id = $1 AND deleted_at IS NULL`, [id]);
+    if (!exists) throw notFound('Cliente não encontrado');
+    const key = `clients/${id}/logo_${crypto.randomUUID().slice(0, 8)}.webp`;
     await makeThumbnail(file.path, key);
-    const c = await one(`UPDATE clients SET logo_key=$2 WHERE id=$1 RETURNING *`, [req.params.id, key]);
-    if (!c) throw notFound('Cliente não encontrado');
-    res.json(withLogo(c));
+    const c = await one(`UPDATE clients SET logo_key=$2 WHERE id=$1 RETURNING *`, [id, key]);
+    if (exists.logo_key && exists.logo_key !== key) await storage.delete(exists.logo_key);
+    res.json(withLogo(c!));
   } finally {
     await cleanupTmp([file]);
   }

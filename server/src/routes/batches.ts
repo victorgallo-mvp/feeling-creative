@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import { query, one, tx } from '../db.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 import { notFound, badRequest } from '../errors.js';
 import { logEvent } from '../services/events.js';
 import { creativesOfBatch } from '../services/creativeQueries.js';
@@ -104,7 +104,14 @@ batchesRouter.patch('/:id', async (req, res) => {
   res.json(r);
 });
 
-batchesRouter.delete('/:id', async (req, res) => {
-  await query(`DELETE FROM batches WHERE id = $1`, [req.params.id]);
+batchesRouter.delete('/:id', requireRole('gestor'), async (req, res) => {
+  const id = z.coerce.number().int().parse(req.params.id);
+  const keys = await query<{ file_key: string; thumb_key: string | null }>(
+    `SELECT a.file_key, a.thumb_key FROM creative_assets a
+       JOIN creative_versions v ON v.id = a.version_id
+       JOIN creatives c ON c.id = v.creative_id WHERE c.batch_id = $1`, [id]);
+  const del = await query(`DELETE FROM batches WHERE id = $1 RETURNING id`, [id]);
+  if (!del.length) throw notFound('Lote não encontrado');
+  for (const k of keys) { await storage.delete(k.file_key); if (k.thumb_key) await storage.delete(k.thumb_key); }
   res.status(204).end();
 });

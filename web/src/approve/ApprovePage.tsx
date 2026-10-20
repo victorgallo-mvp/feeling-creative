@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import type { PublicBatch, PublicCreative, RejectReason } from '../api/types';
 import { Avatar, Spinner } from '../components/ui';
 import { MONTHS } from '../lib/format';
@@ -27,10 +27,15 @@ export function ApprovePage() {
 
   const load = useCallback(async () => {
     try {
-      // reenvia decisões que ficaram presas offline
+      // reenvia decisões que ficaram presas offline; só sai da fila o que o servidor aceitou
+      // (ou recusou de forma definitiva, 4xx). Erro de rede mantém na fila para a próxima abertura.
       const queued: Decision[] = JSON.parse(localStorage.getItem(queueKey) || '[]');
-      for (const d of queued) await api.post(`/api/a/${token}/decisions`, d, { auth: false }).catch(() => {});
-      localStorage.removeItem(queueKey);
+      const remaining: Decision[] = [];
+      for (const d of queued) {
+        try { await api.post(`/api/a/${token}/decisions`, d, { auth: false }); }
+        catch (e) { if (!(e instanceof ApiError)) remaining.push(d); }
+      }
+      if (remaining.length) localStorage.setItem(queueKey, JSON.stringify(remaining)); else localStorage.removeItem(queueKey);
       const r = await api.get<PublicBatch>(`/api/a/${token}`, { auth: false });
       setData(r);
       setSubmitted(!!r.batch.submitted_at);
@@ -52,7 +57,12 @@ export function ApprovePage() {
     try {
       await api.post(`/api/a/${token}/decisions`, d, { auth: false });
     } catch (e) {
-      if (e instanceof Error && /versão mais nova/.test(e.message)) { toast(e.message, 'error'); load(); return; }
+      if (e instanceof ApiError) {
+        // resposta definitiva do servidor (versão nova, arte removida, link trocado): avisa e recarrega
+        toast(e.message, 'error');
+        load();
+        return;
+      }
       const q: Decision[] = JSON.parse(localStorage.getItem(queueKey) || '[]');
       localStorage.setItem(queueKey, JSON.stringify([...q, d]));
       toast('Sem conexão: sua resposta foi guardada e será enviada depois');

@@ -15,12 +15,16 @@ export interface Storage {
   url(key: string): string;
 }
 
+const SAFE_KEY = /^[A-Za-z0-9_\-./]+$/;
+
 class LocalStorage implements Storage {
-  constructor(private root: string) {}
+  private rootAbs: string;
+  constructor(root: string) { this.rootAbs = path.resolve(root); }
 
   private abs(key: string) {
-    const p = path.resolve(this.root, key);
-    if (!p.startsWith(path.resolve(this.root))) throw new Error('Chave de arquivo inválida');
+    if (!SAFE_KEY.test(key) || key.includes('..')) throw new Error('Chave de arquivo inválida');
+    const p = path.resolve(this.rootAbs, key);
+    if (p !== this.rootAbs && !p.startsWith(this.rootAbs + path.sep)) throw new Error('Chave de arquivo inválida');
     return p;
   }
 

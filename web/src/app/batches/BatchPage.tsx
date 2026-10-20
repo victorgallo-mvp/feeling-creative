@@ -13,7 +13,12 @@ export function BatchPage() {
   const { id } = useParams();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['batch', id], queryFn: () => api.get<BatchDetail>(`/api/batches/${id}`) });
-  const refresh = () => { qc.invalidateQueries({ queryKey: ['batch', id] }); qc.invalidateQueries({ queryKey: ['batches'] }); };
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['batch', id] });
+    qc.invalidateQueries({ queryKey: ['batches'] });
+    qc.invalidateQueries({ queryKey: ['notif-count'] });
+    qc.invalidateQueries({ queryKey: ['notifications'] });
+  };
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [dragOver, setDragOver] = useState(false);
@@ -110,8 +115,9 @@ function CreativeCard({ c, index, onChange }: { c: Creative; index: number; onCh
   const dirty = f.caption !== c.caption || f.type !== c.type || f.scheduled_date !== (c.scheduled_date ?? '');
 
   const save = useMutation({
-    mutationFn: () => api.put(`/api/creatives/${c.id}`, f),
-    onSuccess: onChange, onError: toastError,
+    mutationFn: () => api.put<Creative & { reopened?: boolean }>(`/api/creatives/${c.id}`, f),
+    onSuccess: (r) => { if (r.reopened) toast('Legenda/tipo mudaram: a arte voltou a pendente para o cliente aprovar de novo'); onChange(); },
+    onError: toastError,
   });
   const del = useMutation({ mutationFn: () => api.del(`/api/creatives/${c.id}`), onSuccess: () => { toast('Arte excluída'); onChange(); }, onError: toastError });
   const reorder = useMutation({
@@ -239,7 +245,11 @@ function LinkModal({ open, onClose, batch, onChange }: { open: boolean; onClose:
     onSuccess: (d, rotate) => { setData(d); onChange(); toast(rotate ? 'Novo link gerado; o anterior parou de funcionar' : 'Link gerado'); },
     onError: toastError,
   });
-  useEffect(() => { if (open && !batch.link_token && !gen.isPending && !data) gen.mutate(false); }, [open]);
+  const requested = useRef(false);
+  useEffect(() => {
+    if (open && !batch.link_token && !data && !requested.current) { requested.current = true; gen.mutate(false); }
+    if (!open) requested.current = false;
+  }, [open]);
   const copy = async (t: string, what: string) => { await navigator.clipboard.writeText(t); toast(`${what} copiado`); };
 
   return (
