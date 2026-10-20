@@ -1,11 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { PublicCreative, RejectReason } from '../api/types';
 import { PostCard } from './PostCard';
 import { RejectModal } from './RejectModal';
 
 type ClientInfo = { name: string; logo_url: string | null; instagram_handle: string | null };
-const THRESHOLD = 110;
+
+/**
+ * Regras do gesto (calibradas para celular):
+ * - A decisão depende da DISTÂNCIA arrastada em relação à largura do card, não da velocidade.
+ *   Soltar além de 40% da largura decide. Um "flick" rápido (> 1200 px/s) decide a partir de 22%.
+ * - dragDirectionLock: se o dedo começa indo para cima/baixo (ler a legenda, rolar), o card não anda.
+ * - Sem momentum: ao soltar antes do limite o card volta ao centro, sem "escapar".
+ */
+const DECIDE_RATIO = 0.4;
+const FLICK_RATIO = 0.22;
+const FLICK_VELOCITY = 1200;
 
 export function SwipeStack({ items, client, onDecide }: {
   items: PublicCreative[]; client: ClientInfo;
@@ -14,14 +24,27 @@ export function SwipeStack({ items, client, onDecide }: {
   const [exit, setExit] = useState<'left' | 'right' | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [busy, setBusy] = useState(false);
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(360);
   const top = items[0];
   const next = items[1];
 
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const update = () => setWidth(el.clientWidth || 360);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const decideAt = width * DECIDE_RATIO;
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-250, 250], [-14, 14]);
-  const okOpacity = useTransform(x, [30, THRESHOLD], [0, 1]);
-  const noOpacity = useTransform(x, [-THRESHOLD, -30], [1, 0]);
-  const bg = useTransform(x, [-THRESHOLD, 0, THRESHOLD], ['rgba(239,68,68,0.12)', 'rgba(0,0,0,0)', 'rgba(16,185,129,0.12)']);
+  const rotate = useTransform(x, [-width, width], [-12, 12]);
+  const okOpacity = useTransform(x, [decideAt * 0.25, decideAt], [0, 1]);
+  const noOpacity = useTransform(x, [-decideAt, -decideAt * 0.25], [1, 0]);
+  const bg = useTransform(x, [-decideAt, 0, decideAt], ['rgba(239,68,68,0.14)', 'rgba(0,0,0,0)', 'rgba(16,185,129,0.14)']);
 
   const finish = async (action: 'approved' | 'rejected', reason?: RejectReason, comment?: string) => {
     if (!top || busy) return;
@@ -31,9 +54,14 @@ export function SwipeStack({ items, client, onDecide }: {
   };
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    const dx = info.offset.x + info.velocity.x * 0.15;
-    if (dx > THRESHOLD) finish('approved');
-    else if (dx < -THRESHOLD) setRejecting(true);
+    const dx = info.offset.x;
+    const vx = info.velocity.x;
+    const sameDir = Math.sign(dx) === Math.sign(vx);
+    const far = Math.abs(dx) >= decideAt;
+    const flick = sameDir && Math.abs(vx) >= FLICK_VELOCITY && Math.abs(dx) >= width * FLICK_RATIO;
+    if (!far && !flick) return; // volta ao centro (dragSnapToOrigin)
+    if (dx > 0) finish('approved');
+    else setRejecting(true);
   };
 
   if (!top) return null;
@@ -41,7 +69,7 @@ export function SwipeStack({ items, client, onDecide }: {
   return (
     <div className="relative flex flex-1 flex-col">
       <motion.div className="pointer-events-none absolute inset-0 -z-10 rounded-3xl" style={{ background: bg }} />
-      <div className="relative flex-1">
+      <div ref={areaRef} className="relative flex-1">
         {next && (
           <div className="absolute inset-0 scale-[0.95] translate-y-3 opacity-60">
             <PostCard key={`next-${next.id}-${next.version}`} c={next} client={client} compact />
@@ -50,15 +78,18 @@ export function SwipeStack({ items, client, onDecide }: {
         <AnimatePresence initial={false} onExitComplete={() => setExit(null)}>
           <motion.div
             key={`${top.id}-${top.version}`}
-            className="absolute inset-0 cursor-grab active:cursor-grabbing touch-pan-y"
-            style={{ x, rotate }}
+            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            style={{ x, rotate, touchAction: 'pan-y' }}
             drag={!rejecting && !busy ? 'x' : false}
+            dragDirectionLock
             dragSnapToOrigin
-            dragElastic={0.9}
+            dragMomentum={false}
+            dragElastic={1}
+            dragTransition={{ bounceStiffness: 500, bounceDamping: 40 }}
             onDragEnd={onDragEnd}
             initial={{ scale: 0.95, y: 12, opacity: 0.6 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ x: exit === 'right' ? 500 : exit === 'left' ? -500 : 0, rotate: exit === 'right' ? 18 : -18, opacity: 0, transition: { duration: 0.3 } }}
+            exit={{ x: exit === 'right' ? width * 1.5 : exit === 'left' ? -width * 1.5 : 0, rotate: exit === 'right' ? 18 : -18, opacity: 0, transition: { duration: 0.28 } }}
             transition={{ type: 'spring', damping: 22, stiffness: 260 }}
           >
             <PostCard c={top} client={client} />
