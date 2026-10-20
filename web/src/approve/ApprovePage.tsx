@@ -81,7 +81,7 @@ export function ApprovePage() {
         <Avatar src={client.logo_url} name={client.name} size={36} />
         <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate font-semibold">{client.name}</div>
-          <div className="text-xs text-neutral-500">Conteúdo de {monthName}</div>
+          <div className="truncate text-xs text-neutral-500">{batch.title ? ` · ` : `Conteúdo de `}</div>
         </div>
         <div className="flex rounded-full bg-neutral-200/70 p-0.5 text-xs font-medium">
           {(['aprovar', 'feed'] as const).map((t) => (

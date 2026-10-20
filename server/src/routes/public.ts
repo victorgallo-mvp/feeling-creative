@@ -31,7 +31,7 @@ publicRouter.get('/:token', async (req, res) => {
   const creatives = await creativesOfBatch(b.id);
   res.json({
     client: { name: b.client_name, logo_url: b.logo_key ? storage.url(b.logo_key) : null, instagram_handle: b.instagram_handle },
-    batch: { id: b.id, month: b.month, year: b.year, submitted_at: b.submitted_at },
+    batch: { id: b.id, month: b.month, year: b.year, title: b.title ?? null, submitted_at: b.submitted_at },
     creatives: creatives.map((c) => ({
       id: c.id, type: c.type, caption: c.caption, scheduled_date: c.scheduled_date, status: c.status,
       version: c.current_version, decision: c.decision,

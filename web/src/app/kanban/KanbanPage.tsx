@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { BatchSummary, Client, KanbanStatus } from '../../api/types';
-import { Avatar, Badge, Button, Field, Modal, Select, Spinner } from '../../components/ui';
+import { Avatar, Badge, Button, Field, Input, Modal, Select, Spinner } from '../../components/ui';
 import { KANBAN_LABEL, MONTHS, daysAgo } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 
@@ -80,7 +80,7 @@ function Card({ b, draggable }: { b: BatchSummary; draggable: boolean }) {
       className={`block rounded-lg bg-white p-3 shadow-sm ring-1 transition hover:shadow ${b.stuck ? 'ring-red-300' : 'ring-neutral-200'}`}>
       <div className="flex items-center gap-2">
         <Avatar src={b.client_logo_url} name={b.client_name} size={28} />
-        <div className="min-w-0 flex-1 truncate text-sm font-medium">{b.client_name}</div>
+        <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{b.client_name}</div>{b.title && <div className="truncate text-[11px] text-neutral-500">{b.title}</div>}</div>
       </div>
       <div className="mt-2 flex items-center gap-2 text-xs text-neutral-600">
         <span>{b.approved}/{b.total} aprovadas</span>
@@ -103,9 +103,10 @@ function NewBatchModal({ open, onClose, month, year }: { open: boolean; onClose:
   const [clientId, setClientId] = useState<number | ''>('');
   const [m, setM] = useState(month);
   const [y, setY] = useState(year);
+  const [title, setTitle] = useState('');
   const create = useMutation({
-    mutationFn: () => api.post<{ id: number }>('/api/batches', { client_id: clientId, month: m, year: y }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['batches'] }); toast('Lote criado'); onClose(); },
+    mutationFn: () => api.post<{ id: number }>('/api/batches', { client_id: clientId, month: m, year: y, title: title.trim() || null }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['batches'] }); toast('Lote criado'); setTitle(''); onClose(); },
     onError: toastError,
   });
   return (
@@ -121,6 +122,7 @@ function NewBatchModal({ open, onClose, month, year }: { open: boolean; onClose:
           <Field label="Mês"><Select value={m} onChange={(e) => setM(Number(e.target.value))}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</Select></Field>
           <Field label="Ano"><Select value={y} onChange={(e) => setY(Number(e.target.value))}>{[y - 1, y, y + 1].map((v) => <option key={v} value={v}>{v}</option>)}</Select></Field>
         </div>
+        <Field label="Nome do lote (opcional)" hint="Use quando houver mais de um lote no mês, ex.: Lote 2, Black Friday"><Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="Conteúdo mensal" /></Field>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button onClick={() => create.mutate()} disabled={!clientId} loading={create.isPending}>Criar lote</Button>

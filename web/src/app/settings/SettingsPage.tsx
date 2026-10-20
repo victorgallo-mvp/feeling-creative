@@ -27,13 +27,13 @@ export function SettingsPage() {
     onError: toastError,
   });
 
-  const preview = template.replaceAll('{cliente}', 'Sport Fitness').replaceAll('{qtd_artes}', '8').replaceAll('{link}', 'https://…/a/abc123');
+  const preview = template.replaceAll('{cliente}', 'Sport Fitness').replaceAll('{qtd_artes}', '8').replaceAll('{link}', 'https://…/a/abc123').replaceAll('{lote}', 'outubro de 2026');
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="space-y-3 rounded-xl bg-white p-5 ring-1 ring-neutral-200">
         <h2 className="font-semibold">Mensagem padrão do WhatsApp</h2>
-        <p className="text-sm text-neutral-500">Use os marcadores <code>{'{cliente}'}</code>, <code>{'{link}'}</code> e <code>{'{qtd_artes}'}</code>.</p>
+        <p className="text-sm text-neutral-500">Use os marcadores <code>{'{cliente}'}</code>, <code>{'{link}'}</code>, <code>{'{qtd_artes}'}</code> e <code>{'{lote}'}</code> (nome do lote + mês).</p>
         {settings.isLoading ? <Spinner /> : <Textarea value={template} onChange={(e) => setTemplate(e.target.value)} disabled={!isManager} className="min-h-32" />}
         <div className="rounded-lg bg-neutral-50 p-3 text-sm text-neutral-700 whitespace-pre-wrap">{preview}</div>
         {isManager ? <Button onClick={() => save.mutate()} loading={save.isPending}>Salvar</Button> : <p className="text-xs text-neutral-500">Só gestores editam o template.</p>}

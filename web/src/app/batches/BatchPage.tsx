@@ -54,6 +54,7 @@ export function BatchPage() {
         <Avatar src={b.client_logo_url} name={b.client_name} size={40} />
         <div>
           <h1 className="text-xl font-semibold leading-tight">{b.client_name} — {monthLabel(b.month, b.year)}</h1>
+          <BatchTitle batch={b} onChange={refresh} />
           <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
             <Badge tone={b.kanban_status === 'aprovado' ? 'green' : b.kanban_status === 'enviado_aprovacao' ? 'amber' : 'neutral'}>{KANBAN_LABEL[b.kanban_status]}</Badge>
             <span>{b.approved}/{b.total} aprovadas ({pct}%)</span>
@@ -259,5 +260,32 @@ function LinkModal({ open, onClose, batch, onChange }: { open: boolean; onClose:
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Nome do lote (opcional), editável inline. Útil quando há mais de um lote no mês. */
+function BatchTitle({ batch, onChange }: { batch: BatchDetail; onChange: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(batch.title ?? '');
+  useEffect(() => setValue(batch.title ?? ''), [batch.title]);
+  const save = useMutation({
+    mutationFn: () => api.patch(`/api/batches/${batch.id}`, { title: value.trim() || null }),
+    onSuccess: () => { setEditing(false); onChange(); },
+    onError: toastError,
+  });
+  if (editing) {
+    return (
+      <div className="mt-1 flex items-center gap-2">
+        <Input autoFocus value={value} maxLength={80} placeholder="Nome do lote (opcional)" className="h-8 w-64 text-sm" onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') save.mutate(); if (e.key === 'Escape') setEditing(false); }} />
+        <Button className="px-3 py-1 text-xs" onClick={() => save.mutate()} loading={save.isPending}>Salvar</Button>
+        <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => setEditing(false)}>Cancelar</Button>
+      </div>
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)} className="mt-0.5 text-sm text-neutral-500 hover:text-neutral-900" title="Renomear lote">
+      {batch.title ? batch.title : <span className="italic">sem nome</span>} <span className="text-xs">✎</span>
+    </button>
   );
 }

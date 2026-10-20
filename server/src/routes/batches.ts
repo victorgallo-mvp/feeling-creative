@@ -3,10 +3,10 @@ import { z } from 'zod';
 import crypto from 'node:crypto';
 import { query, one, tx } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
-import { notFound, badRequest, HttpError } from '../errors.js';
+import { notFound, badRequest } from '../errors.js';
 import { logEvent } from '../services/events.js';
 import { creativesOfBatch } from '../services/creativeQueries.js';
-import { buildMessage, waUrl } from '../services/message.js';
+import { buildMessage, waUrl, batchLabel } from '../services/message.js';
 import { storage } from '../services/storage/index.js';
 import { config } from '../config.js';
 
@@ -43,11 +43,9 @@ batchesRouter.get('/', async (req, res) => {
 });
 
 batchesRouter.post('/', async (req, res) => {
-  const b = z.object({ client_id: z.number().int(), month: z.number().int().min(1).max(12), year: z.number().int().min(2020) }).parse(req.body);
-  const exists = await one(`SELECT id FROM batches WHERE client_id=$1 AND month=$2 AND year=$3`, [b.client_id, b.month, b.year]);
-  if (exists) throw new HttpError(409, 'Já existe um lote desse cliente para esse mês');
+  const b = z.object({ client_id: z.number().int(), month: z.number().int().min(1).max(12), year: z.number().int().min(2020), title: z.string().trim().max(80).optional().nullable() }).parse(req.body);
   const row = await tx(async (db) => {
-    const r = await one(`INSERT INTO batches (client_id, month, year) VALUES ($1,$2,$3) RETURNING *`, [b.client_id, b.month, b.year], db);
+    const r = await one(`INSERT INTO batches (client_id, month, year, title) VALUES ($1,$2,$3,$4) RETURNING *`, [b.client_id, b.month, b.year, b.title || null], db);
     await logEvent({ batch_id: r!.id, kind: 'batch_created', actor_id: req.user!.id }, db);
     return r;
   });
@@ -61,7 +59,7 @@ batchesRouter.get('/:id', async (req, res) => {
   const events = await query(
     `SELECT e.*, u.name AS actor_name FROM events e LEFT JOIN users u ON u.id = e.actor_id WHERE e.batch_id = $1 ORDER BY e.created_at DESC, e.id DESC`, [b.id],
   );
-  const msg = b.link_token ? await buildMessage({ clientName: b.client_name, token: b.link_token, count: creatives.length }) : null;
+  const msg = b.link_token ? await buildMessage({ clientName: b.client_name, token: b.link_token, count: creatives.length, batchLabel: batchLabel(b) }) : null;
   res.json({ ...decorate(b), creatives, events, link: msg?.link ?? null, message: msg?.text ?? null, wa_url: msg ? waUrl(b.whatsapp, msg.text) : null });
 });
 
@@ -95,8 +93,15 @@ batchesRouter.post('/:id/link', async (req, res) => {
     );
     await logEvent({ batch_id: b.id, kind: 'link_sent', payload: { rotated: token !== b.link_token, creatives: b.total }, actor_id: req.user!.id }, db);
   });
-  const msg = await buildMessage({ clientName: b.client_name, token, count: b.total });
+  const msg = await buildMessage({ clientName: b.client_name, token, count: b.total, batchLabel: batchLabel(b) });
   res.json({ link: msg.link, message: msg.text, wa_url: waUrl(b.whatsapp, msg.text), token });
+});
+
+batchesRouter.patch('/:id', async (req, res) => {
+  const b = z.object({ title: z.string().trim().max(80).nullable() }).parse(req.body);
+  const r = await one(`UPDATE batches SET title=$2 WHERE id=$1 RETURNING *`, [req.params.id, b.title || null]);
+  if (!r) throw notFound('Lote não encontrado');
+  res.json(r);
 });
 
 batchesRouter.delete('/:id', async (req, res) => {
