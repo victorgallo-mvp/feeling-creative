@@ -15,7 +15,7 @@ export function FeedGrid({ creatives, extra = [], onOpen }: { creatives: PublicC
   return (
     <div className="grid grid-cols-3 gap-0.5">
       {items.map((it) => (
-        <button key={it.key} onClick={() => it.c && onOpen?.(it.c)} className="relative aspect-square overflow-hidden bg-neutral-200">
+        <button key={it.key} onClick={() => it.c && onOpen?.(it.c)} className="relative aspect-[4/5] overflow-hidden bg-neutral-200">
           {it.video ? <video src={it.thumb} muted preload="metadata" className="h-full w-full object-cover" /> : <img src={it.thumb} className="h-full w-full object-cover" loading="lazy" />}
           {it.carousel && <span className="absolute right-1 top-1 text-white drop-shadow">▣</span>}
           {it.video && <span className="absolute right-1 top-1 text-white drop-shadow">▶</span>}

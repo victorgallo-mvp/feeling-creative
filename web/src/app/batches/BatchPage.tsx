@@ -136,13 +136,15 @@ function CreativeCard({ c, index, onChange }: { c: Creative; index: number; onCh
 
   const tone = c.status === 'approved' || c.status === 'auto_approved' ? 'green' : c.status === 'rejected' ? 'red' : 'amber';
   const asset = c.assets[slide] ?? c.assets[0];
+  const expected = c.type === 'story' ? 9 / 16 : 4 / 5;
+  const offRatio = c.assets.filter((a) => a.width && a.height && Math.abs(a.width / a.height - expected) > 0.02);
 
   return (
     <div id={`arte-${c.id}`} className={`flex flex-col overflow-hidden rounded-xl bg-white ring-1 ${c.status === 'rejected' ? 'ring-red-300' : 'ring-neutral-200'}`}>
-      <div className="relative aspect-[4/5] bg-neutral-100">
+      <div className={`relative ${c.type === 'story' ? 'aspect-[9/16]' : 'aspect-[4/5]'} bg-neutral-100`}>
         {asset?.mime.startsWith('video') ? <video src={asset.url} controls preload="metadata" className="h-full w-full object-contain" />
           : asset ? <img src={asset.thumb_url ?? asset.url} className="h-full w-full object-cover" /> : null}
-        <div className="absolute left-2 top-2 flex gap-1"><Badge>#{index}</Badge><Badge tone={tone}>{STATUS_LABEL[c.status]}</Badge>{c.current_version > 1 && <Badge tone="blue">v{c.current_version}</Badge>}</div>
+        <div className="absolute left-2 top-2 flex flex-wrap gap-1"><Badge>#{index}</Badge><Badge tone={tone}>{STATUS_LABEL[c.status]}</Badge>{c.current_version > 1 && <Badge tone="blue">v{c.current_version}</Badge>}{offRatio.length > 0 && <Badge tone="amber" >⚠ não é {c.type === 'story' ? '9:16' : '4:5'}</Badge>}</div>
         {c.assets.length > 1 && (
           <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1">
             <button onClick={() => setSlide((s) => Math.max(0, s - 1))} className="rounded-full bg-black/50 px-2 text-white">‹</button>
