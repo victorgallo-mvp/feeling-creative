@@ -6,6 +6,7 @@ import type { BatchSummary, Client, KanbanStatus } from '../../api/types';
 import { Avatar, Badge, Button, Field, Input, Modal, Select, Spinner } from '../../components/ui';
 import { KANBAN_LABEL, MONTHS, daysAgo } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
+import { LinkActions } from '../../components/LinkActions';
 
 const COLUMNS: KanbanStatus[] = ['briefing', 'em_producao', 'enviado_aprovacao', 'aprovado', 'programado'];
 const MANUAL: KanbanStatus[] = ['briefing', 'em_producao', 'programado'];
@@ -93,14 +94,15 @@ function Card({ b, draggable }: { b: BatchSummary; draggable: boolean }) {
         <span className="truncate">{b.designer_name ?? '—'} · {b.manager_name ?? '—'}</span>
         {b.stuck ? <span className="font-semibold text-red-600">⚠ {days}d parado</span> : <span>{days}d</span>}
       </div>
+      {b.link && <div className="mt-2"><LinkActions link={b.link} size="sm" /></div>}
     </Link>
   );
 }
 
-function NewBatchModal({ open, onClose, month, year }: { open: boolean; onClose: () => void; month: number; year: number }) {
+export function NewBatchModal({ open, onClose, month, year, clientId: fixedClient }: { open: boolean; onClose: () => void; month: number; year: number; clientId?: number }) {
   const qc = useQueryClient();
-  const clients = useQuery({ queryKey: ['clients'], queryFn: () => api.get<Client[]>('/api/clients'), enabled: open });
-  const [clientId, setClientId] = useState<number | ''>('');
+  const clients = useQuery({ queryKey: ['clients'], queryFn: () => api.get<Client[]>('/api/clients'), enabled: open && !fixedClient });
+  const [clientId, setClientId] = useState<number | ''>(fixedClient ?? '');
   const [m, setM] = useState(month);
   const [y, setY] = useState(year);
   const [title, setTitle] = useState('');
@@ -112,12 +114,14 @@ function NewBatchModal({ open, onClose, month, year }: { open: boolean; onClose:
   return (
     <Modal open={open} onClose={onClose} title="Novo lote">
       <div className="space-y-3">
-        <Field label="Cliente">
-          <Select value={clientId} onChange={(e) => setClientId(Number(e.target.value))}>
-            <option value="">Selecione…</option>
-            {clients.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </Select>
-        </Field>
+        {!fixedClient && (
+          <Field label="Cliente">
+            <Select value={clientId} onChange={(e) => setClientId(Number(e.target.value))}>
+              <option value="">Selecione…</option>
+              {clients.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </Select>
+          </Field>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Mês"><Select value={m} onChange={(e) => setM(Number(e.target.value))}>{MONTHS.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}</Select></Field>
           <Field label="Ano"><Select value={y} onChange={(e) => setY(Number(e.target.value))}>{[y - 1, y, y + 1].map((v) => <option key={v} value={v}>{v}</option>)}</Select></Field>

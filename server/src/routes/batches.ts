@@ -6,7 +6,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { notFound, badRequest } from '../errors.js';
 import { logEvent } from '../services/events.js';
 import { creativesOfBatch } from '../services/creativeQueries.js';
-import { buildMessage, waUrl, batchLabel } from '../services/message.js';
+import { buildMessage, waUrl, batchLabel, publicLink } from '../services/message.js';
 import { storage } from '../services/storage/index.js';
 import { config } from '../config.js';
 
@@ -28,7 +28,7 @@ const LIST = `
 function decorate(b: any) {
   const stuckMs = config.stuckDays * 24 * 3600 * 1000;
   const stuck = b.kanban_status === 'enviado_aprovacao' && Date.now() - new Date(b.status_changed_at).getTime() > stuckMs;
-  return { ...b, client_logo_url: b.client_logo_key ? storage.url(b.client_logo_key) : null, stuck };
+  return { ...b, client_logo_url: b.client_logo_key ? storage.url(b.client_logo_key) : null, stuck, link: b.link_token ? publicLink(b.link_token) : null };
 }
 
 batchesRouter.get('/', async (req, res) => {

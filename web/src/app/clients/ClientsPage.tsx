@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { LinkActions } from '../../components/LinkActions';
+import { monthLabel } from '../../lib/format';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { Client, User } from '../../api/types';
@@ -26,15 +29,22 @@ export function ClientsPage() {
         <div className="overflow-hidden rounded-xl bg-white ring-1 ring-neutral-200">
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
-              <tr><th className="px-4 py-2">Cliente</th><th className="px-4 py-2">WhatsApp</th><th className="px-4 py-2">Designer</th><th className="px-4 py-2">Gestor</th><th className="px-4 py-2">Auto-aprovação</th><th /></tr>
+              <tr><th className="px-4 py-2">Cliente</th><th className="px-4 py-2">Link de aprovação</th><th className="px-4 py-2">WhatsApp</th><th className="px-4 py-2">Designer / Gestor</th><th className="px-4 py-2">Auto-aprovação</th><th /></tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {clients.data.map((c) => (
                 <tr key={c.id} className="hover:bg-neutral-50">
-                  <td className="px-4 py-2"><div className="flex items-center gap-2"><Avatar src={c.logo_url} name={c.name} size={28} /><div><div className="font-medium">{c.name}</div>{c.instagram_handle && <div className="text-xs text-neutral-500">@{c.instagram_handle}</div>}</div></div></td>
+                  <td className="px-4 py-2"><Link to={`/app/clientes/${c.id}`} className="flex items-center gap-2 hover:underline"><Avatar src={c.logo_url} name={c.name} size={28} /><div><div className="font-medium">{c.name}</div>{c.instagram_handle && <div className="text-xs text-neutral-500">@{c.instagram_handle}</div>}</div></Link></td>
+                  <td className="px-4 py-2">
+                    {c.latest_batch ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs text-neutral-500">{c.latest_batch.title ? `${c.latest_batch.title} · ` : ''}{monthLabel(c.latest_batch.month, c.latest_batch.year)}{c.latest_batch.pending > 0 ? ` · ${c.latest_batch.pending} pendente${c.latest_batch.pending > 1 ? 's' : ''}` : ' · tudo respondido'}</span>
+                        <LinkActions link={c.latest_batch.link} size="sm" />
+                      </div>
+                    ) : <span className="text-xs text-neutral-400">nenhum link gerado</span>}
+                  </td>
                   <td className="px-4 py-2 text-neutral-600">{c.whatsapp ?? '—'}</td>
-                  <td className="px-4 py-2 text-neutral-600">{c.designer_name ?? '—'}</td>
-                  <td className="px-4 py-2 text-neutral-600">{c.manager_name ?? '—'}</td>
+                  <td className="px-4 py-2 text-neutral-600">{c.designer_name ?? '—'} / {c.manager_name ?? '—'}</td>
                   <td className="px-4 py-2">{c.auto_approve_enabled ? <Badge tone="amber">Ligada · {c.auto_approve_days}d</Badge> : <Badge>Desligada</Badge>}</td>
                   <td className="px-4 py-2 text-right whitespace-nowrap">
                     <Button variant="ghost" onClick={() => setEditing(c)}>Editar</Button>

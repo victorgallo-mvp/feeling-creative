@@ -6,6 +6,7 @@ import type { BatchDetail, Creative, CreativeType } from '../../api/types';
 import { Avatar, Badge, Button, Empty, Field, Input, Modal, Select, Spinner, Textarea } from '../../components/ui';
 import { EVENT_LABEL, KANBAN_LABEL, REASON_LABEL, STATUS_LABEL, TYPE_LABEL, fmtDate, monthLabel } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
+import { LinkActions, copyText } from '../../components/LinkActions';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4';
 
@@ -250,19 +251,18 @@ function LinkModal({ open, onClose, batch, onChange }: { open: boolean; onClose:
     if (open && !batch.link_token && !data && !requested.current) { requested.current = true; gen.mutate(false); }
     if (!open) requested.current = false;
   }, [open]);
-  const copy = async (t: string, what: string) => { await navigator.clipboard.writeText(t); toast(`${what} copiado`); };
 
   return (
     <Modal open={open} onClose={onClose} title="Link de aprovação + mensagem">
       {!data ? <Spinner /> : (
         <div className="space-y-3">
           <Field label="Link do cliente (sem login)">
-            <div className="flex gap-2"><Input readOnly value={data.link} onFocus={(e) => e.target.select()} /><Button variant="secondary" onClick={() => copy(data.link, 'Link')}>Copiar</Button></div>
+            <div className="flex flex-wrap items-center gap-2"><Input readOnly value={data.link} onFocus={(e) => e.target.select()} className="min-w-0 flex-1" /><LinkActions link={data.link} /></div>
           </Field>
           <Field label="Mensagem"><Textarea readOnly value={data.message} className="min-h-28" /></Field>
           <div className="flex flex-wrap gap-2">
             <a href={data.wa_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Abrir WhatsApp</a>
-            <Button variant="secondary" onClick={() => copy(data.message, 'Mensagem')}>Copiar mensagem</Button>
+            <Button variant="secondary" onClick={() => copyText(data.message, 'Mensagem')}>Copiar mensagem</Button>
             <Button variant="ghost" onClick={() => confirm('Gerar um novo link? O link antigo deixa de funcionar.') && gen.mutate(true)} loading={gen.isPending}>Gerar novo link</Button>
           </div>
           {!batch.whatsapp && <p className="text-xs text-amber-700">Cliente sem WhatsApp cadastrado: o botão abre o WhatsApp sem destinatário.</p>}

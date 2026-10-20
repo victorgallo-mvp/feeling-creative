@@ -5,6 +5,7 @@ import { Login } from './app/Login';
 import { Layout } from './app/Layout';
 import { KanbanPage } from './app/kanban/KanbanPage';
 import { ClientsPage } from './app/clients/ClientsPage';
+import { ClientPage } from './app/clients/ClientPage';
 import { BatchPage } from './app/batches/BatchPage';
 import { NotificationsPage } from './app/notifications/NotificationsPage';
 import { SettingsPage } from './app/settings/SettingsPage';
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/app" element={<Layout />}>
           <Route index element={<KanbanPage />} />
           <Route path="clientes" element={<ClientsPage />} />
+          <Route path="clientes/:id" element={<ClientPage />} />
           <Route path="lotes/:id" element={<BatchPage />} />
           <Route path="notificacoes" element={<NotificationsPage />} />
           <Route path="configuracoes" element={<SettingsPage />} />

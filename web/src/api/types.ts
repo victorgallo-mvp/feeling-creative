@@ -10,6 +10,7 @@ export interface Client {
   id: number; name: string; logo_url: string | null; instagram_handle: string | null; whatsapp: string | null;
   designer_id: number | null; manager_id: number | null; designer_name?: string | null; manager_name?: string | null;
   auto_approve_enabled: boolean; auto_approve_days: number;
+  latest_batch: { id: number; month: number; year: number; title: string | null; link: string; link_sent_at: string | null; kanban_status: KanbanStatus; total: number; pending: number } | null;
 }
 
 export interface Asset { id: number; url: string; thumb_url: string | null; mime: string; width: number | null; height: number | null; sort_order?: number }
@@ -28,7 +29,7 @@ export interface BatchSummary {
   link_token: string | null; link_sent_at: string | null; viewed_at: string | null; submitted_at: string | null;
   client_name: string; client_logo_url: string | null; instagram_handle: string | null; whatsapp: string | null;
   designer_name: string | null; manager_name: string | null;
-  total: number; approved: number; rejected: number; pending: number; stuck: boolean;
+  total: number; approved: number; rejected: number; pending: number; stuck: boolean; link: string | null;
 }
 
 export interface EventRow { id: number; kind: string; payload: any; created_at: string; actor_name: string | null; creative_id: number | null }

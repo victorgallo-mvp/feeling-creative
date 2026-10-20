@@ -7,18 +7,27 @@ import { notFound, badRequest } from '../errors.js';
 import { logoUpload, cleanupTmp } from '../services/uploads.js';
 import { storage } from '../services/storage/index.js';
 import { makeThumbnail } from '../services/thumbnails.js';
+import { publicLink } from '../services/message.js';
 
 export const clientsRouter = Router();
 clientsRouter.use(requireAuth);
 
 const SELECT = `
-  SELECT c.*, d.name AS designer_name, m.name AS manager_name
+  SELECT c.*, d.name AS designer_name, m.name AS manager_name,
+         (SELECT row_to_json(lb) FROM (
+            SELECT b.id, b.month, b.year, b.title, b.link_token, b.link_sent_at, b.kanban_status,
+                   (SELECT count(*)::int FROM creatives WHERE batch_id = b.id) AS total,
+                   (SELECT count(*)::int FROM creatives WHERE batch_id = b.id AND status = 'pending') AS pending
+              FROM batches b WHERE b.client_id = c.id AND b.link_token IS NOT NULL
+             ORDER BY b.link_sent_at DESC NULLS LAST, b.id DESC LIMIT 1) lb) AS latest_batch
     FROM clients c
     LEFT JOIN users d ON d.id = c.designer_id
     LEFT JOIN users m ON m.id = c.manager_id`;
 
-function withLogo<T extends { logo_key: string | null }>(c: T) {
-  return { ...c, logo_url: c.logo_key ? storage.url(c.logo_key) : null };
+function withLogo<T extends { logo_key: string | null; latest_batch?: any }>(c: T) {
+  const lb = c.latest_batch ? { ...c.latest_batch, link: publicLink(c.latest_batch.link_token) } : null;
+  if (lb) delete lb.link_token;
+  return { ...c, logo_url: c.logo_key ? storage.url(c.logo_key) : null, latest_batch: lb };
 }
 
 const schema = z.object({
