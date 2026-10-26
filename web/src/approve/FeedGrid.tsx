@@ -10,18 +10,18 @@ export function FeedGrid({ creatives, extra = [], onOpen }: { creatives: PublicC
     ...extra.map((e) => ({ key: e.id, date: e.scheduled_date ?? '0000-00-00', thumb: e.thumb_url, video: false, carousel: false, status: 'old' as const, c: null })),
   ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
-  if (!items.length) return <div className="p-8 text-center text-sm text-neutral-500">Nenhum post para mostrar na grade (stories não entram).</div>;
+  if (!items.length) return <div className="p-8 text-center text-sm text-neutral-400">Nenhum post para mostrar na grade (stories não entram).</div>;
 
   return (
     <div className="grid grid-cols-3 gap-0.5">
       {items.map((it) => (
-        <button key={it.key} onClick={() => it.c && onOpen?.(it.c)} className="relative aspect-[4/5] overflow-hidden bg-neutral-200">
+        <button key={it.key} onClick={() => it.c && onOpen?.(it.c)} className="relative aspect-[4/5] overflow-hidden bg-neutral-800">
           {it.video ? <video src={it.thumb} muted preload="metadata" className="h-full w-full object-cover" /> : <img src={it.thumb} className="h-full w-full object-cover" loading="lazy" />}
           {it.carousel && <span className="absolute right-1 top-1 text-white drop-shadow">▣</span>}
           {it.video && <span className="absolute right-1 top-1 text-white drop-shadow">▶</span>}
           {it.status === 'rejected' && <span className="absolute inset-0 bg-red-600/50" />}
           {it.status === 'pending' && <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[10px] text-white">pendente</span>}
-          {(it.status === 'approved' || it.status === 'auto_approved') && <span className="absolute bottom-1 left-1 rounded bg-emerald-600/90 px-1 text-[10px] text-white">✓</span>}
+          {(it.status === 'approved' || it.status === 'auto_approved') && <span className="absolute bottom-1 left-1 rounded bg-brand-500 px-1 text-[10px] font-bold text-black">✓</span>}
         </button>
       ))}
     </div>

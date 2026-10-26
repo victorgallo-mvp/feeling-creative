@@ -1,17 +1,48 @@
 @import "tailwindcss";
 
+/*
+ * Identidade Feeling (Manual de Marca 2026):
+ * - Paleta: Verde Feeling #04D81A (destaque), preto e branco (base). Sem outras cores institucionais.
+ * - Tipografia: Big Shoulders Display para títulos; Proxima Nova para texto (sem licença aqui → Inter como substituta).
+ * - Verde concentrado nos pontos de atenção; preto/branco sustentam contraste e leitura.
+ */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-brand-50: #fff1f2;
-  --color-brand-100: #ffe4e6;
-  --color-brand-500: #e11d48;
-  --color-brand-600: #be123c;
-  --color-brand-700: #9f1239;
+  --font-display: "Big Shoulders Display", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #ecfeef;
+  --color-brand-100: #d2fbd8;
+  --color-brand-200: #a6f7b3;
+  --color-brand-300: #6def82;
+  --color-brand-400: #34e54c;
+  --color-brand-500: #04d81a;
+  --color-brand-600: #03b416;
+  --color-brand-700: #038d12;
+  --color-brand-800: #056f12;
+  --color-brand-900: #064f10;
+  --color-brand-950: #022d09;
+
+  --color-ink: #000000;
+  --color-ink-900: #0a0a0a;
+  --color-ink-800: #141414;
+  --color-ink-700: #1f1f1f;
 }
 
 html, body, #root { height: 100%; }
 body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overscroll-behavior-y: none; }
+
+/* Títulos de página no padrão da marca: condensados, caixa alta, peso forte. */
+.display { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.01em; line-height: 0.95; }
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .snap-x-mandatory { scroll-snap-type: x mandatory; }
 .snap-item { scroll-snap-align: center; }
+
+/* Brilho verde sutil usado nos fundos escuros (efeito de luz do manual, não é cor nova da paleta). */
+.glow-bg {
+  background-color: #000;
+  background-image:
+    radial-gradient(60% 40% at 50% -10%, rgba(4, 216, 26, 0.28), transparent 70%),
+    radial-gradient(40% 30% at 100% 100%, rgba(4, 216, 26, 0.10), transparent 70%);
+}

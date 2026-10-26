@@ -23,9 +23,9 @@ export function LinkActions({ link, size = 'md', waUrl }: { link: string; size?:
   const stop = (e: React.MouseEvent) => { e.stopPropagation(); e.preventDefault(); };
   return (
     <span className="inline-flex flex-wrap items-center gap-1" onClick={stop}>
-      <a href={link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className={`${cls} bg-neutral-900 text-white hover:bg-neutral-700`} title={link}>Abrir ↗</a>
+      <a href={link} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className={`${cls} bg-black text-white hover:bg-neutral-800`} title={link}>Abrir ↗</a>
       <button type="button" onClick={(e) => { stop(e); copyText(link); }} className={`${cls} border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-100`}>Copiar</button>
-      {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className={`${cls} bg-emerald-600 text-white hover:bg-emerald-700`}>WhatsApp</a>}
+      {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className={`${cls} bg-brand-500 text-black hover:bg-brand-400`}>WhatsApp</a>}
     </span>
   );
 }

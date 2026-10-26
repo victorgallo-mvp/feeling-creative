@@ -69,9 +69,9 @@ export function SwipeStack({ items, client, onDecide }: {
       </div>
 
       <div className="mt-3 flex items-center justify-center gap-8 pb-[env(safe-area-inset-bottom)]">
-        <button aria-label="Recusar" onClick={() => setRejecting(true)} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-3xl text-red-500 shadow-lg ring-1 ring-black/5 transition active:scale-90 disabled:opacity-50">✕</button>
-        <div className="text-center text-[11px] leading-tight text-neutral-400">arraste<br />← recusar · aprovar →</div>
-        <button aria-label="Aprovar" onClick={() => finish('approved')} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-3xl text-emerald-500 shadow-lg ring-1 ring-black/5 transition active:scale-90 disabled:opacity-50">✓</button>
+        <button aria-label="Recusar" onClick={() => setRejecting(true)} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-900 text-3xl text-red-400 shadow-lg ring-1 ring-white/15 transition active:scale-90 disabled:opacity-50">✕</button>
+        <div className="text-center text-[11px] leading-tight text-neutral-500">arraste<br />← recusar · aprovar →</div>
+        <button aria-label="Aprovar" onClick={() => finish('approved')} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-3xl text-black shadow-lg shadow-brand-500/30 transition active:scale-90 disabled:opacity-50">✓</button>
       </div>
 
       <RejectModal open={rejecting} busy={busy} onCancel={() => setRejecting(false)} onConfirm={(r, c) => finish('rejected', r, c)} />
@@ -88,7 +88,7 @@ function TopCard({ c, client, width, exit, dragEnabled, onApprove, onReject }: {
   const rotate = useTransform(x, [-width, width], [-12, 12]);
   const okOpacity = useTransform(x, [decideAt * 0.25, decideAt], [0, 1]);
   const noOpacity = useTransform(x, [-decideAt, -decideAt * 0.25], [1, 0]);
-  const bg = useTransform(x, [-decideAt, 0, decideAt], ['rgba(239,68,68,0.14)', 'rgba(0,0,0,0)', 'rgba(16,185,129,0.14)']);
+  const bg = useTransform(x, [-decideAt, 0, decideAt], ['rgba(239,68,68,0.22)', 'rgba(0,0,0,0)', 'rgba(4,216,26,0.22)']);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
     const dx = info.offset.x;
@@ -119,8 +119,8 @@ function TopCard({ c, client, width, exit, dragEnabled, onApprove, onReject }: {
     >
       <motion.div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl" style={{ background: bg }} />
       <PostCard c={c} client={client} />
-      <motion.div style={{ opacity: okOpacity }} className="pointer-events-none absolute left-4 top-5 -rotate-12 rounded-lg border-4 border-emerald-500 px-3 py-1 text-2xl font-black uppercase tracking-wider text-emerald-500">Aprovar</motion.div>
-      <motion.div style={{ opacity: noOpacity }} className="pointer-events-none absolute right-4 top-5 rotate-12 rounded-lg border-4 border-red-500 px-3 py-1 text-2xl font-black uppercase tracking-wider text-red-500">Recusar</motion.div>
+      <motion.div style={{ opacity: okOpacity }} className="display pointer-events-none absolute left-4 top-5 -rotate-12 rounded-lg border-4 border-brand-500 bg-black/70 px-3 py-1 text-3xl text-brand-500">Aprovar</motion.div>
+      <motion.div style={{ opacity: noOpacity }} className="display pointer-events-none absolute right-4 top-5 rotate-12 rounded-lg border-4 border-red-500 bg-black/70 px-3 py-1 text-3xl text-red-500">Recusar</motion.div>
     </motion.div>
   );
 }

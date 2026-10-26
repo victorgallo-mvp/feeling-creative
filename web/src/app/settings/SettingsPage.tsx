@@ -32,7 +32,7 @@ export function SettingsPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="space-y-3 rounded-xl bg-white p-5 ring-1 ring-neutral-200">
-        <h2 className="font-semibold">Mensagem padrão do WhatsApp</h2>
+        <h2 className="display text-xl">Mensagem padrão do WhatsApp</h2>
         <p className="text-sm text-neutral-500">Use os marcadores <code>{'{cliente}'}</code>, <code>{'{link}'}</code>, <code>{'{qtd_artes}'}</code> e <code>{'{lote}'}</code> (nome do lote + mês).</p>
         {settings.isLoading ? <Spinner /> : <Textarea value={template} onChange={(e) => setTemplate(e.target.value)} disabled={!isManager} className="min-h-32" />}
         <div className="rounded-lg bg-neutral-50 p-3 text-sm text-neutral-700 whitespace-pre-wrap">{preview}</div>
@@ -40,7 +40,7 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3 rounded-xl bg-white p-5 ring-1 ring-neutral-200">
-        <h2 className="font-semibold">Equipe</h2>
+        <h2 className="display text-xl">Equipe</h2>
         <ul className="divide-y divide-neutral-100 text-sm">
           {users.data?.map((u) => <li key={u.id} className="flex justify-between py-1.5"><span>{u.name} <span className="text-neutral-400">· {u.email}</span></span><span className="text-neutral-500">{u.role}</span></li>)}
         </ul>
