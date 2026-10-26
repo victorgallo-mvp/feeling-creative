@@ -3,7 +3,7 @@
 Sistema da agência Feeling para gerenciar a produção mensal de conteúdo de Instagram e colher a aprovação dos clientes por um link sem login, com swipe estilo Tinder. Roda sob a Potentia.
 
 - **Painel interno** (`/app`): login, clientes, lotes por mês, upload em lote, Kanban, link + mensagem de WhatsApp, fila de recusas, histórico por arte.
-- **Link do cliente** (`/a/:token`): mobile-first, card imitando post do Instagram, swipe direita aprova, esquerda abre modal de recusa, prévia da grade do feed, resumo e envio.
+- **Link do cliente** (`/a/:token`): mobile-first, card imitando post do Instagram (stories em tela cheia 9:16 com barra de progresso, como no app), swipe direita aprova, esquerda abre modal de recusa, prévia da grade do feed com faixa de stories, resumo, feedback obrigatório e envio.
 
 ## Stack
 
@@ -27,6 +27,8 @@ npm run migrate                      # cria as tabelas
 npm run seed                         # admin + designer + 2 clientes + lote com 8 artes
 npm run dev                          # API em :3001, front em :5173
 ```
+
+**Testar no celular antes de commitar:** `npm run dev:local` sobe API e front usando o IP da máquina na rede Wi-Fi (roda migrations e seed antes). O terminal mostra a URL do painel para o celular e os links de aprovação gerados nessa sessão já abrem no telefone. Para forçar um IP: `DEV_IP=192.168.0.10 npm run dev:local`.
 
 Login do seed: `admin@feeling.com.br` / `feeling123` (gestor) e `designer@feeling.com.br` / `feeling123` (designer).
 
@@ -56,6 +58,10 @@ Scripts úteis: `npm run migrate -w server` / `npm run migrate:down -w server`, 
 
 Depois que a Vercel der o domínio, volte no Railway e preencha `FRONTEND_URL`.
 
+## Identidade visual
+
+Segue o Manual de Marca Feeling 2026: verde `#04D81A` só nos pontos de atenção (botões principais, aprovado, progresso), preto e branco como base, títulos em **Big Shoulders Display** (classe `display`) e texto em Inter (substituta da Proxima Nova, que não tem licença aqui). Logos em `web/public/brand/` (`logo-dark-bg.png` para fundo escuro, `logo-light-bg.png` para claro, `symbol.png` para tamanhos pequenos). O painel usa cabeçalho preto e conteúdo claro; o link do cliente é escuro, com o card do post em branco imitando o Instagram.
+
 ## Como funciona
 
 ### Fluxo
@@ -63,7 +69,7 @@ Depois que a Vercel der o domínio, volte no Railway e preencha `FRONTEND_URL`.
 1. Designer cria o cliente (nome, @, WhatsApp, responsáveis) e o lote do mês.
 2. No lote, arrasta os arquivos: cada arquivo vira uma arte (ou usa **+ Carrossel** para várias imagens em uma arte). Preenche legenda, tipo e data prevista em cada card.
 3. Gestor clica **Gerar link + mensagem**: o sistema cria o token, monta a mensagem (template em Configurações, com `{cliente}` `{link}` `{qtd_artes}`) e abre o WhatsApp via `wa.me`. O lote vai para **Enviado para aprovação**.
-4. Cliente abre o link no celular, desliza cada card (direita aprova, esquerda abre motivo + comentário), vê a grade do feed e envia. Cada swipe é salvo na hora; se ficar sem rede, a resposta fica guardada no navegador e é reenviada na próxima abertura. O gesto decide pela distância (40% da largura do card, ou 22% num flick rápido), não pela velocidade, e um arrasto que começa vertical não vira swipe. "Enviar aprovação" só é aceito quando não há arte pendente.
+4. Cliente abre o link no celular, desliza cada card (direita aprova, esquerda abre motivo + comentário), vê a grade do feed e envia. **O envio exige um feedback**: nota de 1 a 5 estrelas e uma frase, gravados no lote (`feedback_rating`, `feedback_comment`, `feedback_at`) e visíveis na página **Feedbacks** (média, distribuição, filtros, "novo" até a equipe marcar como visto), no Kanban, na lista e na página do cliente (média por cliente) e no lote. Notas 1 e 2 não vistas geram alerta em Recusas e badge vermelho no menu. Cada swipe é salvo na hora; se ficar sem rede, a resposta fica guardada no navegador e é reenviada na próxima abertura. O gesto decide pela distância (40% da largura do card, ou 22% num flick rápido), não pela velocidade, e um arrasto que começa vertical não vira swipe. "Enviar aprovação" só é aceito quando não há arte pendente.
 5. Recusas aparecem em **Recusas** no painel. O designer sobe a v2 na arte; ela volta a pendente e o mesmo link passa a mostrar só o que está pendente.
 6. Quando 100% das artes vigentes estão aprovadas, o lote vai sozinho para **Aprovado**; o gestor move para **Programado** manualmente.
 
