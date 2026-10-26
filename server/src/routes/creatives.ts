@@ -40,15 +40,24 @@ creativesRouter.post('/batches/:batchId/creatives', upload.array('files', 40), a
       const ids: number[] = [];
       let order = maxOrder;
       for (const g of groups) {
-        const type = b.type ?? (g.length > 1 ? 'carrossel' : g[0].mimetype.startsWith('video') ? 'video' : 'estatica');
+        let type: (typeof TYPES)[number] = b.type ?? (g.length > 1 ? 'carrossel' : g[0].mimetype.startsWith('video') ? 'video' : 'estatica');
+        const hasVideo = g.some((f) => f.mimetype.startsWith('video'));
         if (type === 'video' && !g.every((f) => f.mimetype.startsWith('video'))) throw badRequest('Arte do tipo vídeo precisa de arquivo MP4');
-        if (type !== 'video' && g.some((f) => f.mimetype.startsWith('video'))) throw badRequest('Arquivo de vídeo só pode ser usado em arte do tipo vídeo');
+        if (hasVideo && type !== 'video' && type !== 'story') throw badRequest('Arquivo de vídeo só pode ser usado em arte do tipo vídeo ou story');
         const cr = await one(
           `INSERT INTO creatives (batch_id, type, caption, scheduled_date, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
           [batchId, type, b.caption, b.scheduled_date || null, ++order], db,
         );
         const v = await one(`INSERT INTO creative_versions (creative_id, version, created_by) VALUES ($1,1,$2) RETURNING id`, [cr!.id, req.user!.id], db);
         await attachAssets(g, batchId, v!.id, db);
+        // Sem tipo informado: imagem única em 9:16 vira story automaticamente
+        if (!b.type && type === 'estatica') {
+          const a = await one<{ width: number | null; height: number | null }>(`SELECT width, height FROM creative_assets WHERE version_id = $1 ORDER BY sort_order LIMIT 1`, [v!.id], db);
+          if (a?.width && a?.height && Math.abs(a.width / a.height - 9 / 16) < 0.02) {
+            type = 'story';
+            await query(`UPDATE creatives SET type = 'story' WHERE id = $1`, [cr!.id], db);
+          }
+        }
         await logEvent({ batch_id: batchId, creative_id: cr!.id, kind: 'creative_uploaded', payload: { type, files: g.length }, actor_id: req.user!.id }, db);
         ids.push(cr!.id);
       }
@@ -83,7 +92,7 @@ creativesRouter.put('/creatives/:id', async (req, res) => {
       `SELECT a.mime FROM creative_assets a JOIN creative_versions v ON v.id = a.version_id WHERE v.creative_id = $1 AND v.version = $2`, [cur.id, cur.current_version]);
     const hasVideo = mimes.some((m) => m.mime.startsWith('video'));
     if (type === 'video' && !hasVideo) throw badRequest('Tipo vídeo exige um arquivo MP4. Suba uma nova versão com o vídeo.');
-    if (type !== 'video' && hasVideo) throw badRequest('Essa arte tem vídeo; o tipo precisa ser vídeo.');
+    if (hasVideo && type !== 'video' && type !== 'story') throw badRequest('Essa arte tem vídeo; o tipo precisa ser vídeo ou story.');
   }
   const contentChanged = caption !== cur.caption || type !== cur.type;
   const reopen = contentChanged && cur.status !== 'pending';

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { PublicCreative } from '../api/types';
 import { Avatar } from '../components/ui';
 import { TYPE_LABEL } from '../lib/format';
+import { StoryCard } from './StoryCard';
 
 function fmtLong(iso: string | null) {
   if (!iso) return null;
@@ -13,8 +14,8 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
   const [slide, setSlide] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const asset = c.assets[slide] ?? c.assets[0];
-  const isStory = c.type === 'story';
   const long = c.caption.length > 110;
+  if (c.type === 'story') return <StoryCard c={c} client={client} />;
 
   return (
     <div className="flex h-full w-full select-none flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5 no-scrollbar">
@@ -27,7 +28,7 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
         <span className="text-neutral-400">•••</span>
       </div>
 
-      <div className={`relative w-full shrink-0 bg-neutral-100 ${isStory ? 'aspect-[9/16]' : 'aspect-[4/5]'} overflow-hidden`}>
+      <div className="relative aspect-[4/5] w-full shrink-0 overflow-hidden bg-neutral-100">
         {asset?.mime.startsWith('video') ? (
           <video src={asset.url} controls playsInline preload="metadata" className="h-full w-full object-contain" onPointerDownCapture={(e) => e.stopPropagation()} />
         ) : (
@@ -43,7 +44,7 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
             <button aria-label="Próxima" onClick={() => setSlide((s) => Math.min(c.assets.length - 1, s + 1))} onPointerDownCapture={(e) => e.stopPropagation()}
               className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/85 p-1.5 shadow disabled:opacity-0" disabled={slide === c.assets.length - 1}>›</button>
             <div className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{slide + 1}/{c.assets.length}</div>
-            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">{c.assets.map((a, i) => <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${i === slide ? 'bg-sky-500' : 'bg-white/70'}`} />)}</div>
+            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">{c.assets.map((a, i) => <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${i === slide ? 'bg-brand-500' : 'bg-white/70'}`} />)}</div>
           </>
         )}
       </div>
