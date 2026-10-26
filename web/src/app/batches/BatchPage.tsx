@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { BatchDetail, Creative, CreativeType } from '../../api/types';
-import { Avatar, Badge, Button, Empty, Field, Input, Modal, Select, Spinner, Textarea } from '../../components/ui';
+import { Avatar, Badge, Button, Empty, Field, Input, Modal, Select, Spinner, Stars, Textarea } from '../../components/ui';
 import { EVENT_LABEL, KANBAN_LABEL, REASON_LABEL, STATUS_LABEL, TYPE_LABEL, fmtDate, monthLabel } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions, copyText } from '../../components/LinkActions';
@@ -25,16 +25,21 @@ export function BatchPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const carouselRef = useRef<HTMLInputElement>(null);
+  const storyRef = useRef<HTMLInputElement>(null);
 
-  const upload = useCallback(async (files: File[], mode: 'each' | 'single') => {
+  const upload = useCallback(async (files: File[], mode: 'each' | 'single', type?: 'story') => {
     if (!files.length) return;
     setUploading((n) => n + files.length);
     try {
       const fd = new FormData();
       files.forEach((f) => fd.append('files', f));
       fd.append('mode', mode);
-      await api.post(`/api/batches/${id}/creatives`, fd);
-      toast(mode === 'single' ? 'Carrossel criado' : `${files.length} arte${files.length > 1 ? 's' : ''} enviada${files.length > 1 ? 's' : ''}`);
+      if (type) fd.append('type', type);
+      const created = await api.post<Creative[]>(`/api/batches/${id}/creatives`, fd);
+      const autoStories = !type && created.filter((c) => c.type === 'story').length;
+      toast(mode === 'single' ? 'Carrossel criado'
+        : type === 'story' ? `${files.length} stor${files.length > 1 ? 'ies' : 'y'} enviado${files.length > 1 ? 's' : ''}`
+        : `${files.length} arte${files.length > 1 ? 's' : ''} enviada${files.length > 1 ? 's' : ''}${autoStories ? ` (${autoStories} em 9:16 marcada${autoStories > 1 ? 's' : ''} como story)` : ''}`);
       refresh();
     } catch (e) { toastError(e); } finally { setUploading((n) => n - files.length); }
   }, [id]);
@@ -59,7 +64,7 @@ export function BatchPage() {
         <Link to="/app" className="text-sm text-neutral-500 hover:text-neutral-900">← Kanban</Link>
         <Avatar src={b.client_logo_url} name={b.client_name} size={40} />
         <div>
-          <h1 className="text-xl font-semibold leading-tight">{b.client_name} — {monthLabel(b.month, b.year)}</h1>
+          <h1 className="display text-3xl text-black">{b.client_name} <span className="text-neutral-400">·</span> {monthLabel(b.month, b.year)}</h1>
           <BatchTitle batch={b} onChange={refresh} />
           <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
             <Badge tone={b.kanban_status === 'aprovado' ? 'green' : b.kanban_status === 'enviado_aprovacao' ? 'amber' : 'neutral'}>{KANBAN_LABEL[b.kanban_status]}</Badge>
@@ -71,17 +76,28 @@ export function BatchPage() {
           </div>
         </div>
         <div className="flex-1" />
+        <Button variant="secondary" onClick={() => storyRef.current?.click()}>+ Stories</Button>
         <Button variant="secondary" onClick={() => carouselRef.current?.click()}>+ Carrossel</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}>+ Artes</Button>
         <Button onClick={() => setLinkOpen(true)} disabled={b.total === 0}>{b.link_token ? 'Link + mensagem' : 'Gerar link + mensagem'}</Button>
         <input ref={fileRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { upload(Array.from(e.target.files ?? []), 'each'); e.target.value = ''; }} />
         <input ref={carouselRef} type="file" multiple accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => { upload(Array.from(e.target.files ?? []), 'single'); e.target.value = ''; }} />
+        <input ref={storyRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { upload(Array.from(e.target.files ?? []), 'each', 'story'); e.target.value = ''; }} />
       </div>
 
+      {b.feedback_rating && (
+        <section className="flex flex-wrap items-center gap-3 rounded-xl bg-black px-4 py-3 text-white ring-1 ring-brand-500/50">
+          <span className="display text-lg text-brand-400">Feedback do cliente</span>
+          <Stars value={b.feedback_rating} size={18} />
+          <span className="text-sm text-neutral-200">“{b.feedback_comment}”</span>
+          <span className="text-xs text-neutral-500">{fmtDate(b.feedback_at, true)}</span>
+        </section>
+      )}
+
       <div onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}
-        className={`rounded-xl border-2 border-dashed p-5 text-center text-sm transition ${dragOver ? 'border-neutral-900 bg-neutral-100' : 'border-neutral-300 bg-white text-neutral-500'}`}>
+        className={`rounded-xl border-2 border-dashed p-5 text-center text-sm transition ${dragOver ? 'border-brand-500 bg-brand-50' : 'border-neutral-300 bg-white text-neutral-500'}`}>
         {uploading > 0 ? <span className="inline-flex items-center gap-2"><Spinner className="h-4 w-4" /> Enviando {uploading} arquivo{uploading > 1 && 's'}…</span>
-          : <>Arraste imagens (JPG, PNG, WebP) ou vídeos (MP4) aqui. Cada arquivo vira uma arte. Para carrossel, use o botão “+ Carrossel”.</>}
+          : <>Arraste imagens (JPG, PNG, WebP) ou vídeos (MP4) aqui. Cada arquivo vira uma arte; imagem em 9:16 já entra como story. Para carrossel, use “+ Carrossel”; para stories em vídeo, “+ Stories”.</>}
       </div>
 
       {b.creatives.length === 0 ? <Empty>Nenhuma arte ainda. Arraste os arquivos acima.</Empty> : (
@@ -91,12 +107,12 @@ export function BatchPage() {
       )}
 
       <section className="rounded-xl bg-white p-4 ring-1 ring-neutral-200">
-        <h2 className="mb-2 font-semibold">Atividade do lote</h2>
+        <h2 className="display mb-2 text-xl">Atividade do lote</h2>
         <ul className="space-y-1 text-sm">
           {b.events.slice(0, 30).map((e) => (
             <li key={e.id} className="flex gap-3 text-neutral-700">
               <span className="w-28 shrink-0 text-xs text-neutral-400">{fmtDate(e.created_at, true)}</span>
-              <span>{EVENT_LABEL[e.kind] ?? e.kind}{e.creative_id && <span className="text-neutral-400"> · arte #{b.creatives.findIndex((c) => c.id === e.creative_id) + 1 || e.creative_id}</span>}{e.actor_name && <span className="text-neutral-400"> · {e.actor_name}</span>}{e.payload?.reason_category && <span className="text-red-700"> · {REASON_LABEL[e.payload.reason_category as keyof typeof REASON_LABEL]}</span>}</span>
+              <span>{EVENT_LABEL[e.kind] ?? e.kind}{e.creative_id && <span className="text-neutral-400"> · arte #{b.creatives.findIndex((c) => c.id === e.creative_id) + 1 || e.creative_id}</span>}{e.actor_name && <span className="text-neutral-400"> · {e.actor_name}</span>}{e.payload?.reason_category && <span className="text-red-700"> · {REASON_LABEL[e.payload.reason_category as keyof typeof REASON_LABEL]}</span>}{e.kind === 'batch_submitted' && e.payload?.rating && <span className="text-neutral-500"> · nota {e.payload.rating}/5{e.payload.comment && <> — “{e.payload.comment}”</>}</span>}</span>
             </li>
           ))}
         </ul>
@@ -193,7 +209,7 @@ function NewVersionModal({ open, onClose, c, onChange }: { open: boolean; onClos
     <Modal open={open} onClose={onClose} title={`Nova versão (v${c.current_version + 1})`}>
       <div className="space-y-3">
         {c.decision?.action === 'rejected' && <div className="rounded-md bg-red-50 p-2 text-sm text-red-800">Cliente recusou por <b>{c.decision.reason_category ? REASON_LABEL[c.decision.reason_category] : '—'}</b>{c.decision.comment && <>: “{c.decision.comment}”</>}</div>}
-        <Field label={c.type === 'carrossel' ? 'Imagens do carrossel (todas, na ordem)' : 'Arquivo'}><Input type="file" multiple={c.type === 'carrossel'} accept={c.type === 'video' ? 'video/mp4' : 'image/jpeg,image/png,image/webp'} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></Field>
+        <Field label={c.type === 'carrossel' ? 'Imagens do carrossel (todas, na ordem)' : 'Arquivo'}><Input type="file" multiple={c.type === 'carrossel'} accept={c.type === 'video' ? 'video/mp4' : c.type === 'story' ? ACCEPT : 'image/jpeg,image/png,image/webp'} onChange={(e) => setFiles(Array.from(e.target.files ?? []))} /></Field>
         <Field label="Legenda"><Textarea value={caption} onChange={(e) => setCaption(e.target.value)} /></Field>
         <Field label="O que mudou (opcional, só interno)"><Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="ex.: clareei a foto e troquei o título" /></Field>
         <div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={() => send.mutate()} disabled={!files.length} loading={send.isPending}>Enviar versão</Button></div>
@@ -263,7 +279,7 @@ function LinkModal({ open, onClose, batch, onChange }: { open: boolean; onClose:
           </Field>
           <Field label="Mensagem"><Textarea readOnly value={data.message} className="min-h-28" /></Field>
           <div className="flex flex-wrap gap-2">
-            <a href={data.wa_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Abrir WhatsApp</a>
+            <a href={data.wa_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-400">Abrir WhatsApp</a>
             <Button variant="secondary" onClick={() => copyText(data.message, 'Mensagem')}>Copiar mensagem</Button>
             <Button variant="ghost" onClick={() => confirm('Gerar um novo link? O link antigo deixa de funcionar.') && gen.mutate(true)} loading={gen.isPending}>Gerar novo link</Button>
           </div>

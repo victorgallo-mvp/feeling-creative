@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { BatchSummary, Client, KanbanStatus } from '../../api/types';
-import { Avatar, Badge, Button, Field, Input, Modal, Select, Spinner } from '../../components/ui';
+import { Avatar, Badge, Button, Field, Input, Modal, PageTitle, Select, Spinner, Stars } from '../../components/ui';
 import { KANBAN_LABEL, MONTHS, daysAgo } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions } from '../../components/LinkActions';
@@ -38,7 +38,7 @@ export function KanbanPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">Kanban</h1>
+        <PageTitle>Kanban</PageTitle>
         <div className="flex gap-2">
           <Select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="w-36">{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</Select>
           <Select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24">{years.map((y) => <option key={y} value={y}>{y}</option>)}</Select>
@@ -55,7 +55,7 @@ export function KanbanPage() {
               <div key={col} onDragOver={(e) => MANUAL.includes(col) && e.preventDefault()} onDrop={(e) => onDrop(e, col)}
                 className={`min-h-40 rounded-xl p-2 ${MANUAL.includes(col) ? 'bg-neutral-100' : 'bg-neutral-100/60 ring-1 ring-inset ring-dashed ring-neutral-300'}`}>
                 <div className="mb-2 flex items-center justify-between px-1">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-600">{KANBAN_LABEL[col]}</span>
+                  <span className="display text-base text-neutral-800">{KANBAN_LABEL[col]}</span>
                   <span className="text-xs text-neutral-400">{items.length}</span>
                 </div>
                 <div className="space-y-2">
@@ -88,12 +88,13 @@ function Card({ b, draggable }: { b: BatchSummary; draggable: boolean }) {
         {b.rejected > 0 && <Badge tone="red">{b.rejected} recusada{b.rejected > 1 && 's'}</Badge>}
       </div>
       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-        <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-brand-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
       <div className="mt-2 flex items-center justify-between text-[11px] text-neutral-500">
         <span className="truncate">{b.designer_name ?? '—'} · {b.manager_name ?? '—'}</span>
         {b.stuck ? <span className="font-semibold text-red-600">⚠ {days}d parado</span> : <span>{days}d</span>}
       </div>
+      {b.feedback_rating && <div className="mt-2 flex items-center gap-1.5 text-[11px] text-neutral-500" title={b.feedback_comment ?? ''}><Stars value={b.feedback_rating} size={12} /><span className="truncate">{b.feedback_comment}</span></div>}
       {b.link && <div className="mt-2"><LinkActions link={b.link} size="sm" /></div>}
     </Link>
   );

@@ -4,6 +4,7 @@
  * Idempotente: não duplica se o admin já existir. Roda no start do serviço.
  */
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import sharp from 'sharp';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -85,6 +86,31 @@ async function main() {
       const v = await one(`INSERT INTO creative_versions (creative_id, version, created_by) VALUES ($1,1,$2) RETURNING id`, [cr!.id, designer!.id], db);
       await attachAssets(files, batch!.id, v!.id, db);
       await logEvent({ batch_id: batch!.id, creative_id: cr!.id, kind: 'creative_uploaded', payload: { type: effType, files: files.length }, actor_id: designer!.id }, db);
+    });
+  }
+  // Lotes de meses anteriores já aprovados e avaliados pelo cliente (alimentam a página Feedbacks)
+  const prev = (k: number) => { const d = new Date(year, month - 1 - k, 1); return { m: d.getMonth() + 1, y: d.getFullYear() }; };
+  const c2 = await one(`SELECT id FROM clients WHERE instagram_handle = 'clinicabemestar'`);
+  const past = [
+    { client: c1!.id, ...prev(1), rating: 5, comment: 'Artes incríveis, aprovei tudo em 5 minutos pelo celular.', n: 3, idx: 0 },
+    { client: c2!.id, ...prev(1), rating: 3, comment: 'Gostei das fotos, mas as legendas precisavam de mais revisão.', n: 2, idx: 3 },
+    { client: c1!.id, ...prev(2), rating: 2, comment: 'Demorou para chegar e duas artes vieram fora da identidade.', n: 2, idx: 5 },
+  ];
+  for (const p of past) {
+    await tx(async (db) => {
+      const b = await one(`INSERT INTO batches (client_id, month, year, kanban_status, link_token, link_sent_at, viewed_at, submitted_at, feedback_rating, feedback_comment, feedback_at)
+                           VALUES ($1,$2,$3,'programado', $6, now() - interval '20 days', now() - interval '19 days', now() - interval '18 days', $4, $5, now() - interval '18 days') RETURNING id`,
+        [p.client, p.m, p.y, p.rating, p.comment, crypto.randomBytes(24).toString('hex')], db);
+      await logEvent({ batch_id: b!.id, kind: 'batch_created', actor_id: admin!.id }, db);
+      for (let i = 0; i < p.n; i++) {
+        const files = [await placeholder(p.idx + i, `Arte ${i + 1}`)];
+        const cr = await one(`INSERT INTO creatives (batch_id, type, caption, scheduled_date, sort_order, status) VALUES ($1,'estatica',$2,$3,$4,'approved') RETURNING id`,
+          [b!.id, captions[(p.idx + i) % captions.length], new Date(p.y, p.m - 1, 5 + i * 4).toISOString().slice(0, 10), i + 1], db);
+        const v = await one(`INSERT INTO creative_versions (creative_id, version, created_by) VALUES ($1,1,$2) RETURNING id`, [cr!.id, designer!.id], db);
+        await attachAssets(files, b!.id, v!.id, db);
+        await query(`INSERT INTO decisions (creative_id, version, action, source) VALUES ($1,1,'approved','client')`, [cr!.id], db);
+      }
+      await logEvent({ batch_id: b!.id, kind: 'batch_submitted', payload: { approved: p.n, rejected: 0, pending: 0, rating: p.rating, comment: p.comment } }, db);
     });
   }
   console.log(`Seed ok. Login: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD} (gestor) · designer@feeling.com.br / ${ADMIN_PASSWORD} (designer)`);

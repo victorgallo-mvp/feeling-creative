@@ -13,6 +13,7 @@ import { batchesRouter } from './routes/batches.js';
 import { creativesRouter } from './routes/creatives.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { settingsRouter } from './routes/settings.js';
+import { feedbacksRouter } from './routes/feedbacks.js';
 import { publicRouter } from './routes/public.js';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/batches', batchesRouter);
 app.use('/api', creativesRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/feedbacks', feedbacksRouter);
 
 
 app.use((_req, res) => res.status(404).json({ error: 'Rota não encontrada' }));

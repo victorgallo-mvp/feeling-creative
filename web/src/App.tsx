@@ -8,6 +8,7 @@ import { ClientsPage } from './app/clients/ClientsPage';
 import { ClientPage } from './app/clients/ClientPage';
 import { BatchPage } from './app/batches/BatchPage';
 import { NotificationsPage } from './app/notifications/NotificationsPage';
+import { FeedbacksPage } from './app/feedbacks/FeedbacksPage';
 import { SettingsPage } from './app/settings/SettingsPage';
 import { ApprovePage } from './approve/ApprovePage';
 
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="clientes/:id" element={<ClientPage />} />
           <Route path="lotes/:id" element={<BatchPage />} />
           <Route path="notificacoes" element={<NotificationsPage />} />
+          <Route path="feedbacks" element={<FeedbacksPage />} />
           <Route path="configuracoes" element={<SettingsPage />} />
         </Route>
         <Route path="/a/:token" element={<ApprovePage />} />

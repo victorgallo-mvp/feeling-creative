@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { Notification } from '../../api/types';
-import { Badge, Button, Empty, Spinner } from '../../components/ui';
+import { Badge, Button, Empty, PageTitle, Spinner } from '../../components/ui';
 import { REASON_LABEL, TYPE_LABEL, fmtDate, monthLabel } from '../../lib/format';
 
 export function NotificationsPage() {
@@ -12,15 +12,23 @@ export function NotificationsPage() {
   const read = useMutation({ mutationFn: (id: number) => api.post(`/api/notifications/${id}/read`), onSuccess: invalidate });
   const readAll = useMutation({ mutationFn: () => api.post('/api/notifications/read-all'), onSuccess: invalidate });
   const unread = list.data?.filter((n) => !n.read_at) ?? [];
+  const fb = useQuery({ queryKey: ['feedback-count'], queryFn: () => api.get<{ n: number; low: number }>('/api/feedbacks/count') });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold">Recusas</h1>
+        <PageTitle>Recusas</PageTitle>
         {unread.length > 0 && <Badge tone="red">{unread.length} nova{unread.length > 1 && 's'}</Badge>}
         <div className="flex-1" />
         {unread.length > 0 && <Button variant="secondary" onClick={() => readAll.mutate()}>Marcar todas como vistas</Button>}
       </div>
+      {(fb.data?.low ?? 0) > 0 && (
+        <Link to="/app/feedbacks?rating=low" className="flex flex-wrap items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200 hover:bg-red-100">
+          <span className="display text-lg">Atenção</span>
+          <span>{fb.data!.low} feedback{fb.data!.low > 1 ? 's' : ''} de cliente com nota baixa (1 ou 2 estrelas) ainda não visto{fb.data!.low > 1 ? 's' : ''}.</span>
+          <span className="ml-auto font-medium underline">Ver feedbacks</span>
+        </Link>
+      )}
       {list.isLoading ? <Spinner /> : !list.data?.length ? <Empty>Nenhuma recusa até agora. 🎉</Empty> : (
         <div className="space-y-2">
           {list.data.map((n) => (

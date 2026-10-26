@@ -32,7 +32,10 @@ publicRouter.get('/:token', async (req, res) => {
   const creatives = await creativesOfBatch(b.id);
   res.json({
     client: { name: b.client_name, logo_url: b.logo_key ? storage.url(b.logo_key) : null, instagram_handle: b.instagram_handle },
-    batch: { id: b.id, month: b.month, year: b.year, title: b.title ?? null, submitted_at: b.submitted_at },
+    batch: {
+      id: b.id, month: b.month, year: b.year, title: b.title ?? null, submitted_at: b.submitted_at,
+      feedback: b.feedback_rating ? { rating: b.feedback_rating, comment: b.feedback_comment, at: b.feedback_at } : null,
+    },
     creatives: creatives.map((c) => ({
       id: c.id, type: c.type, caption: c.caption, scheduled_date: c.scheduled_date, status: c.status,
       version: c.current_version, decision: c.decision,
@@ -86,6 +89,15 @@ publicRouter.post('/:token/decisions', async (req, res) => {
 
 publicRouter.post('/:token/submit', async (req, res) => {
   const b = await loadBatch(req.params.token);
+  // Feedback obrigatório: nota de 1 a 5 e uma frase. Sem os dois, o envio não é aceito.
+  const fb = z.object({
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: z.string().trim().min(3).max(1000),
+  }).safeParse(req.body ?? {});
+  if (!fb.success) {
+    const field = fb.error.issues[0]?.path[0];
+    throw badRequest(field === 'comment' ? 'Escreva uma frase sobre como foi a experiência (mín. 3 caracteres).' : 'Avalie a experiência de 1 a 5 estrelas.');
+  }
   const result = await tx(async (db) => {
     const [c] = await query(
       `SELECT count(*) FILTER (WHERE status IN ('approved','auto_approved'))::int AS approved,
@@ -93,8 +105,11 @@ publicRouter.post('/:token/submit', async (req, res) => {
               count(*) FILTER (WHERE status = 'pending')::int AS pending
          FROM creatives WHERE batch_id = $1`, [b.id], db);
     if (c.pending > 0) throw badRequest(`Ainda há ${c.pending} arte(s) sem resposta.`);
-    await query(`UPDATE batches SET submitted_at = now() WHERE id = $1`, [b.id], db);
-    await logEvent({ batch_id: b.id, kind: 'batch_submitted', payload: c }, db);
+    await query(
+      `UPDATE batches SET submitted_at = now(), feedback_rating = $2, feedback_comment = $3, feedback_at = now(), feedback_read_at = NULL WHERE id = $1`,
+      [b.id, fb.data.rating, fb.data.comment], db,
+    );
+    await logEvent({ batch_id: b.id, kind: 'batch_submitted', payload: { ...c, rating: fb.data.rating, comment: fb.data.comment } }, db);
     return c;
   });
   res.json({ ok: true, ...result });

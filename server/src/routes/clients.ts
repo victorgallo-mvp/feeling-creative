@@ -14,6 +14,11 @@ clientsRouter.use(requireAuth);
 
 const SELECT = `
   SELECT c.*, d.name AS designer_name, m.name AS manager_name,
+         (SELECT round(avg(feedback_rating)::numeric, 1)::float FROM batches WHERE client_id = c.id AND feedback_rating IS NOT NULL) AS feedback_avg,
+         (SELECT count(*)::int FROM batches WHERE client_id = c.id AND feedback_rating IS NOT NULL) AS feedback_count,
+         (SELECT row_to_json(lf) FROM (
+            SELECT feedback_rating AS rating, feedback_comment AS comment, feedback_at AS at, month, year, id AS batch_id
+              FROM batches WHERE client_id = c.id AND feedback_rating IS NOT NULL ORDER BY feedback_at DESC LIMIT 1) lf) AS last_feedback,
          (SELECT row_to_json(lb) FROM (
             SELECT b.id, b.month, b.year, b.title, b.link_token, b.link_sent_at, b.kanban_status,
                    (SELECT count(*)::int FROM creatives WHERE batch_id = b.id) AS total,

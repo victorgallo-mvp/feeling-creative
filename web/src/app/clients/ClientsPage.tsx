@@ -5,7 +5,7 @@ import { monthLabel } from '../../lib/format';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client';
 import type { Client, User } from '../../api/types';
-import { Avatar, Badge, Button, Empty, Field, Input, Modal, Select, Spinner } from '../../components/ui';
+import { Avatar, Badge, Button, Empty, Field, Input, Modal, PageTitle, Select, Spinner, Stars } from '../../components/ui';
 import { toast, toastError } from '../../components/toastStore';
 
 export function ClientsPage() {
@@ -21,7 +21,7 @@ export function ClientsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-xl font-semibold">Clientes</h1>
+        <PageTitle>Clientes</PageTitle>
         <div className="flex-1" />
         <Button onClick={() => setEditing('new')}>+ Novo cliente</Button>
       </div>
@@ -29,7 +29,7 @@ export function ClientsPage() {
         <div className="overflow-hidden rounded-xl bg-white ring-1 ring-neutral-200">
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase tracking-wide text-neutral-500">
-              <tr><th className="px-4 py-2">Cliente</th><th className="px-4 py-2">Link de aprovação</th><th className="px-4 py-2">WhatsApp</th><th className="px-4 py-2">Designer / Gestor</th><th className="px-4 py-2">Auto-aprovação</th><th /></tr>
+              <tr><th className="px-4 py-2">Cliente</th><th className="px-4 py-2">Link de aprovação</th><th className="px-4 py-2">WhatsApp</th><th className="px-4 py-2">Designer / Gestor</th><th className="px-4 py-2">Avaliação</th><th className="px-4 py-2">Auto-aprovação</th><th /></tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {clients.data.map((c) => (
@@ -45,6 +45,7 @@ export function ClientsPage() {
                   </td>
                   <td className="px-4 py-2 text-neutral-600">{c.whatsapp ?? '—'}</td>
                   <td className="px-4 py-2 text-neutral-600">{c.designer_name ?? '—'} / {c.manager_name ?? '—'}</td>
+                  <td className="px-4 py-2">{c.feedback_avg != null ? <Link to="/app/feedbacks" className="flex items-center gap-1.5" title={c.last_feedback?.comment ?? ''}><span className={`font-semibold ${c.feedback_avg <= 2.5 ? 'text-red-600' : ''}`}>{c.feedback_avg.toFixed(1)}</span><Stars value={Math.round(c.feedback_avg)} size={13} /><span className="text-xs text-neutral-400">({c.feedback_count})</span></Link> : <span className="text-xs text-neutral-400">sem avaliação</span>}</td>
                   <td className="px-4 py-2">{c.auto_approve_enabled ? <Badge tone="amber">Ligada · {c.auto_approve_days}d</Badge> : <Badge>Desligada</Badge>}</td>
                   <td className="px-4 py-2 text-right whitespace-nowrap">
                     <Button variant="ghost" onClick={() => setEditing(c)}>Editar</Button>
