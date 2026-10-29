@@ -20,7 +20,8 @@ export function StoryCard({ c, client }: { c: PublicCreative; client: ClientInfo
 
   return (
     <div className="mx-auto flex h-full w-full items-center justify-center">
-      <div className="relative aspect-[9/16] max-h-full max-w-full select-none overflow-hidden rounded-2xl bg-black shadow-xl ring-1 ring-white/10">
+      {/* altura = 100% da área; largura vem da proporção 9:16. Sem altura explícita a caixa ficava 0x0 e o story não aparecia. */}
+      <div className="relative h-full aspect-[9/16] max-w-full select-none overflow-hidden rounded-2xl bg-black shadow-xl ring-1 ring-white/10">
         {asset?.mime.startsWith('video') ? (
           <video key={asset.id} src={asset.url} autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
         ) : (

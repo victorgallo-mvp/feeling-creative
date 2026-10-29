@@ -4,6 +4,7 @@ import type { PublicCreative } from '../api/types';
 import { Avatar } from '../components/ui';
 import { TYPE_LABEL } from '../lib/format';
 import { StoryCard } from './StoryCard';
+import { ArrowButton, CarouselIndicator } from '../components/CarouselArrows';
 
 function fmtLong(iso: string | null) {
   if (!iso) return null;
@@ -39,12 +40,9 @@ export function PostCard({ c, client, compact }: { c: PublicCreative; client: { 
         )}
         {c.assets.length > 1 && (
           <>
-            <button aria-label="Anterior" onClick={() => setSlide((s) => Math.max(0, s - 1))} onPointerDownCapture={(e) => e.stopPropagation()}
-              className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-white/85 p-1.5 shadow disabled:opacity-0" disabled={slide === 0}>‹</button>
-            <button aria-label="Próxima" onClick={() => setSlide((s) => Math.min(c.assets.length - 1, s + 1))} onPointerDownCapture={(e) => e.stopPropagation()}
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-white/85 p-1.5 shadow disabled:opacity-0" disabled={slide === c.assets.length - 1}>›</button>
-            <div className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{slide + 1}/{c.assets.length}</div>
-            <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1">{c.assets.map((a, i) => <span key={a.id} className={`h-1.5 w-1.5 rounded-full ${i === slide ? 'bg-brand-500' : 'bg-white/70'}`} />)}</div>
+            <ArrowButton dir="prev" onClick={() => setSlide((s) => Math.max(0, s - 1))} disabled={slide === 0} size={compact ? 'sm' : 'md'} className="absolute left-2 top-1/2 -translate-y-1/2" />
+            <ArrowButton dir="next" onClick={() => setSlide((s) => Math.min(c.assets.length - 1, s + 1))} disabled={slide === c.assets.length - 1} size={compact ? 'sm' : 'md'} nudge={!compact && slide === 0} className="absolute right-2 top-1/2 -translate-y-1/2" />
+            <CarouselIndicator index={slide} total={c.assets.length} />
           </>
         )}
       </div>

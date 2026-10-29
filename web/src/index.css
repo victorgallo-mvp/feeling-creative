@@ -46,3 +46,9 @@ body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overs
     radial-gradient(60% 40% at 50% -10%, rgba(4, 216, 26, 0.28), transparent 70%),
     radial-gradient(40% 30% at 100% 100%, rgba(4, 216, 26, 0.10), transparent 70%);
 }
+
+/* Pulso das setas do carrossel (3 vezes ao aparecer), sinaliza que há mais lâminas. */
+@keyframes nudge-right { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
+@keyframes nudge-left  { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(-5px) } }
+.animate-nudge-right { animation: nudge-right 0.9s ease-in-out 0.4s 3; }
+.animate-nudge-left  { animation: nudge-left 0.9s ease-in-out 0.4s 3; }

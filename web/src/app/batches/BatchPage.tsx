@@ -7,6 +7,7 @@ import { Avatar, Badge, Button, Empty, Field, Input, Modal, Select, Spinner, Sta
 import { EVENT_LABEL, KANBAN_LABEL, REASON_LABEL, STATUS_LABEL, TYPE_LABEL, fmtDate, monthLabel } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions, copyText } from '../../components/LinkActions';
+import { ArrowButton } from '../../components/CarouselArrows';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4';
 
@@ -112,7 +113,7 @@ export function BatchPage() {
           {b.events.slice(0, 30).map((e) => (
             <li key={e.id} className="flex gap-3 text-neutral-700">
               <span className="w-28 shrink-0 text-xs text-neutral-400">{fmtDate(e.created_at, true)}</span>
-              <span>{EVENT_LABEL[e.kind] ?? e.kind}{e.creative_id && <span className="text-neutral-400"> · arte #{b.creatives.findIndex((c) => c.id === e.creative_id) + 1 || e.creative_id}</span>}{e.actor_name && <span className="text-neutral-400"> · {e.actor_name}</span>}{e.payload?.reason_category && <span className="text-red-700"> · {REASON_LABEL[e.payload.reason_category as keyof typeof REASON_LABEL]}</span>}{e.kind === 'batch_submitted' && e.payload?.rating && <span className="text-neutral-500"> · nota {e.payload.rating}/5{e.payload.comment && <> — “{e.payload.comment}”</>}</span>}</span>
+              <span>{EVENT_LABEL[e.kind] ?? e.kind}{e.creative_id && <span className="text-neutral-400"> · arte #{b.creatives.findIndex((c) => c.id === e.creative_id) + 1 || e.creative_id}</span>}{e.actor_name && <span className="text-neutral-400"> · {e.actor_name}</span>}{e.payload?.reason_category && <span className="text-red-700"> · {REASON_LABEL[e.payload.reason_category as keyof typeof REASON_LABEL]}</span>}{e.kind === 'batch_submitted' && e.payload?.rating && <span className="text-neutral-500"> · nota {e.payload.rating}/5{e.payload.comment && <> — “{e.payload.comment}”</>}</span>}{e.kind === 'creative_decision_changed' && <span className="text-neutral-500"> · de {e.payload.from === 'rejected' ? 'recusada' : 'aprovada'} para {e.payload.to === 'rejected' ? 'recusada' : 'aprovada'}</span>}</span>
             </li>
           ))}
         </ul>
@@ -162,13 +163,15 @@ function CreativeCard({ c, index, onChange }: { c: Creative; index: number; onCh
           : asset ? <img src={asset.thumb_url ?? asset.url} className="h-full w-full object-cover" /> : null}
         <div className="absolute left-2 top-2 flex flex-wrap gap-1"><Badge>#{index}</Badge><Badge tone={tone}>{STATUS_LABEL[c.status]}</Badge>{c.current_version > 1 && <Badge tone="blue">v{c.current_version}</Badge>}{offRatio.length > 0 && <Badge tone="amber" >⚠ não é {c.type === 'story' ? '9:16' : '4:5'}</Badge>}</div>
         {c.assets.length > 1 && (
-          <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1">
-            <button onClick={() => setSlide((s) => Math.max(0, s - 1))} className="rounded-full bg-black/50 px-2 text-white">‹</button>
-            <span className="rounded-full bg-black/50 px-2 text-xs text-white">{slide + 1}/{c.assets.length}</span>
-            <button onClick={() => setSlide((s) => Math.min(c.assets.length - 1, s + 1))} className="rounded-full bg-black/50 px-2 text-white">›</button>
-            <button onClick={() => moveAsset(-1)} title="Mover para antes" className="ml-2 rounded-full bg-black/50 px-2 text-xs text-white">⇠</button>
-            <button onClick={() => moveAsset(1)} title="Mover para depois" className="rounded-full bg-black/50 px-2 text-xs text-white">⇢</button>
-          </div>
+          <>
+            <ArrowButton dir="prev" size="sm" onClick={() => setSlide((s) => Math.max(0, s - 1))} disabled={slide === 0} className="absolute left-2 top-1/2 -translate-y-1/2" />
+            <ArrowButton dir="next" size="sm" onClick={() => setSlide((s) => Math.min(c.assets.length - 1, s + 1))} disabled={slide === c.assets.length - 1} className="absolute right-2 top-1/2 -translate-y-1/2" />
+            <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1.5">
+              <span className="rounded-full bg-black/75 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-white/30">{slide + 1}/{c.assets.length}</span>
+              <button onClick={() => moveAsset(-1)} title="Mover esta lâmina para antes" className="rounded-full bg-black/75 px-2 py-0.5 text-xs text-white ring-1 ring-white/30 hover:bg-black">⇠ ordem</button>
+              <button onClick={() => moveAsset(1)} title="Mover esta lâmina para depois" className="rounded-full bg-black/75 px-2 py-0.5 text-xs text-white ring-1 ring-white/30 hover:bg-black">ordem ⇢</button>
+            </div>
+          </>
         )}
       </div>
       <div className="space-y-2 p-3">
