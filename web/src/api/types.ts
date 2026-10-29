@@ -58,6 +58,17 @@ export interface FeedbackList {
   items: FeedbackRow[];
 }
 
+export interface Alert {
+  kind: 'batch_submitted' | 'creative_rejected'; batch_id: number; month: number; year: number; title: string | null;
+  client_id: number; client_name: string; client_logo_url: string | null;
+  count: number; at: string; event_ids: number[]; rating: number | null; comment: string | null; rejected_now: number;
+}
+export interface ActivityRow {
+  id: number; kind: string; payload: any; created_at: string; creative_id: number | null; batch_id: number;
+  month: number; year: number; title: string | null; client_id: number; client_name: string; client_logo_url: string | null;
+  creative_index: number | null; creative_type: CreativeType | null; actor_name: string | null;
+}
+
 export interface PublicCreative {
   id: number; type: CreativeType; caption: string; scheduled_date: string | null; status: CreativeStatus; version: number;
   decision: Decision | null; assets: Asset[];

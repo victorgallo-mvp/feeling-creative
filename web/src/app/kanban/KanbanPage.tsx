@@ -7,6 +7,7 @@ import { Avatar, Badge, Button, Field, Input, Modal, PageTitle, Select, Spinner,
 import { KANBAN_LABEL, MONTHS, daysAgo } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions } from '../../components/LinkActions';
+import { AlertsBar } from './AlertsBar';
 
 const COLUMNS: KanbanStatus[] = ['briefing', 'em_producao', 'enviado_aprovacao', 'aprovado', 'programado'];
 const MANUAL: KanbanStatus[] = ['briefing', 'em_producao', 'programado'];
@@ -37,6 +38,7 @@ export function KanbanPage() {
 
   return (
     <div className="space-y-4">
+      <AlertsBar />
       <div className="flex flex-wrap items-center gap-3">
         <PageTitle>Kanban</PageTitle>
         <div className="flex gap-2">

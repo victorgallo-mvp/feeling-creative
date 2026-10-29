@@ -10,6 +10,7 @@ const links = [
   { to: '/app/notificacoes', label: 'Recusas' },
   { to: '/app/feedbacks', label: 'Feedbacks' },
   { to: '/app/configuracoes', label: 'Configurações' },
+  { to: '/app/historico', label: 'Histórico' },
 ];
 
 export function Layout() {
