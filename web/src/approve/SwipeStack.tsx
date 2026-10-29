@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { PublicCreative, RejectReason } from '../api/types';
 import { PostCard } from './PostCard';
-import { RejectModal } from './RejectModal';
+import { RejectSheet } from './RejectSheet';
 
 type ClientInfo = { name: string; logo_url: string | null; instagram_handle: string | null };
 
@@ -27,33 +27,52 @@ export function SwipeStack({ items, client, onDecide }: {
   const [busy, setBusy] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(360);
+  const [sheetMin, setSheetMin] = useState(false); // folha de recusa minimizada → card volta ao tamanho normal
+  const [sheetH, setSheetH] = useState(0); // altura real da folha de recusa
+  const [area, setArea] = useState({ top: 0, height: 500 });
   const top = items[0];
   const next = items[1];
 
   useEffect(() => {
     const el = areaRef.current;
     if (!el) return;
-    const update = () => setWidth(el.clientWidth || 360);
+    const update = () => { setWidth(el.clientWidth || 360); const r = el.getBoundingClientRect(); setArea({ top: r.top, height: r.height || 500 }); };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  const finish = async (action: 'approved' | 'rejected', reason?: RejectReason, comment?: string) => {
+  /**
+   * Decide e libera a tela na hora. O estado local já muda de forma otimista dentro de onDecide
+   * (a rede fica em segundo plano), então o próximo card entra sem esperar a resposta. Antes,
+   * ✕ e ✓ ficavam desabilitados até a requisição voltar e o primeiro toque seguinte se perdia.
+   */
+  const finish = (action: 'approved' | 'rejected', reason?: RejectReason, comment?: string) => {
     if (!top || busy) return;
     setBusy(true);
     setExit(action === 'approved' ? 'right' : 'left');
-    try { await onDecide(top, action, reason, comment); } finally { setBusy(false); setRejecting(false); }
+    void onDecide(top, action, reason, comment);
+    setRejecting(false);
+    setBusy(false);
   };
 
   if (!top) return null;
 
+  // Com a folha expandida, o card encolhe só o necessário para caber entre o topo da área e a folha.
+  const free = (typeof window !== 'undefined' ? window.innerHeight : 800) - sheetH - area.top - 12;
+  const rejectScale = rejecting && !sheetMin && sheetH > 0 ? Math.min(1, Math.max(0.3, free / area.height)) : 1;
+
   return (
     <div className="relative flex flex-1 flex-col">
-      <div ref={areaRef} className="relative flex-1">
+      {/*
+        Recusa: com a folha expandida o card encolhe para o topo (inteiro, legenda incluída);
+        com a folha minimizada volta ao tamanho normal e fica interativo.
+      */}
+      <motion.div ref={areaRef} className="relative flex-1" style={{ transformOrigin: 'top center' }}
+        animate={{ scale: rejectScale }} transition={{ type: 'spring', damping: 26, stiffness: 260 }}>
         {next && (
-          <div className="absolute inset-0 scale-[0.95] translate-y-3 opacity-60">
+          <div className={`absolute inset-0 scale-[0.95] translate-y-3 transition-opacity ${rejecting && !sheetMin ? 'opacity-0' : 'opacity-60'}`}>
             <PostCard key={`next-${next.id}-${next.version}`} c={next} client={client} compact />
           </div>
         )}
@@ -66,15 +85,16 @@ export function SwipeStack({ items, client, onDecide }: {
             onReject={() => setRejecting(true)}
           />
         </AnimatePresence>
-      </div>
+      </motion.div>
 
-      <div className="mt-3 flex items-center justify-center gap-8 pb-[env(safe-area-inset-bottom)]">
+      <RejectSheet open={rejecting} busy={busy} onMinimized={setSheetMin} onHeight={setSheetH} onCancel={() => setRejecting(false)} onConfirm={(r, c) => finish('rejected', r, c)} />
+
+      <div className={`mt-3 flex items-center justify-center gap-8 pb-[env(safe-area-inset-bottom)] ${rejecting ? 'invisible' : ''}`}>
         <button aria-label="Recusar" onClick={() => setRejecting(true)} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-900 text-3xl text-red-400 shadow-lg ring-1 ring-white/15 transition active:scale-90 disabled:opacity-50">✕</button>
         <div className="text-center text-[11px] leading-tight text-neutral-500">arraste<br />← recusar · aprovar →</div>
         <button aria-label="Aprovar" onClick={() => finish('approved')} disabled={busy} className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-3xl text-black shadow-lg shadow-brand-500/30 transition active:scale-90 disabled:opacity-50">✓</button>
       </div>
 
-      <RejectModal open={rejecting} busy={busy} onCancel={() => setRejecting(false)} onConfirm={(r, c) => finish('rejected', r, c)} />
     </div>
   );
 }
@@ -114,7 +134,7 @@ function TopCard({ c, client, width, exit, dragEnabled, onApprove, onReject }: {
       onDragEnd={onDragEnd}
       initial={{ scale: 0.95, y: 12, opacity: 0.6 }}
       animate={{ scale: 1, y: 0, opacity: 1 }}
-      exit={{ x: exit === 'right' ? width * 1.5 : exit === 'left' ? -width * 1.5 : 0, rotate: exit === 'right' ? 18 : -18, opacity: 0, transition: { duration: 0.28 } }}
+      exit={{ x: exit === 'right' ? width * 1.5 : exit === 'left' ? -width * 1.5 : 0, rotate: exit === 'right' ? 18 : -18, opacity: 0, pointerEvents: 'none', transition: { duration: 0.28 } }}
       transition={{ type: 'spring', damping: 22, stiffness: 260 }}
     >
       <motion.div className="pointer-events-none absolute -inset-2 -z-10 rounded-3xl" style={{ background: bg }} />

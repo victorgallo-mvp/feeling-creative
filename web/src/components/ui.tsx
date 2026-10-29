@@ -113,11 +113,11 @@ import { create } from './toastStore';
 export function Toaster() {
   const toasts = create.use();
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-[60] flex flex-col items-center gap-2 px-4">
       <AnimatePresence>
         {toasts.map((t) => (
           <motion.div key={t.id} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}
-            className={cx('pointer-events-auto rounded-lg px-4 py-2 text-sm shadow-lg', t.kind === 'error' ? 'bg-red-600 text-white' : 'bg-black text-white ring-1 ring-brand-500/60')}>
+            className={cx('rounded-lg px-4 py-2 text-sm shadow-lg', t.kind === 'error' ? 'bg-red-600 text-white' : 'bg-black text-white ring-1 ring-brand-500/60')}>
             {t.message}
           </motion.div>
         ))}
