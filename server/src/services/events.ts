@@ -3,7 +3,7 @@ import { query, type Queryable, pool } from '../db.js';
 export type EventKind =
   | 'batch_created' | 'kanban_moved' | 'link_sent' | 'link_viewed' | 'batch_submitted'
   | 'creative_uploaded' | 'version_uploaded' | 'creative_edited'
-  | 'creative_approved' | 'creative_rejected' | 'creative_auto_approved';
+  | 'creative_approved' | 'creative_rejected' | 'creative_auto_approved' | 'creative_decision_changed';
 
 export async function logEvent(
   e: { batch_id: number; creative_id?: number | null; kind: EventKind; payload?: Record<string, unknown>; actor_id?: number | null },

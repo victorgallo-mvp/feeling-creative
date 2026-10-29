@@ -8,6 +8,8 @@ import { MONTHS } from '../lib/format';
 import { SwipeStack } from './SwipeStack';
 import { FeedGrid } from './FeedGrid';
 import { PostCard } from './PostCard';
+import { RejectSheet } from './RejectSheet';
+import { REASON_LABEL } from '../lib/format';
 import { toast } from '../components/toastStore';
 
 type Decision = { creative_id: number; version: number; action: 'approved' | 'rejected'; reason_category?: RejectReason | null; comment?: string | null };
@@ -22,6 +24,10 @@ export function ApprovePage() {
   const [stage, setStage] = useState<Stage>('start');
   const [tab, setTab] = useState<'aprovar' | 'feed'>('aprovar');
   const [preview, setPreview] = useState<PublicCreative | null>(null);
+  const [changing, setChanging] = useState(false); // modal de motivo ao trocar para recusa na prévia
+  const [changeBusy, setChangeBusy] = useState(false);
+  const [changeMin, setChangeMin] = useState(false); // folha de recusa minimizada na prévia
+  const [changeSheetH, setChangeSheetH] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [session, setSession] = useState({ approved: 0, rejected: 0 });
@@ -76,6 +82,24 @@ export function ApprovePage() {
   };
 
   useEffect(() => { if (stage === 'swipe' && pending.length === 0) setStage('done'); }, [stage, pending.length]);
+
+  // Pode trocar a resposta enquanto ela não foi enviada à agência (lote nunca enviado, ou decisão posterior ao último envio).
+  const canChange = (c: PublicCreative) => c.status !== 'pending' && !!c.decision && c.decision.source === 'client'
+    && (!data?.batch.submitted_at || new Date(c.decision.decided_at) > new Date(data.batch.submitted_at));
+
+  const change = async (c: PublicCreative, action: 'approved' | 'rejected', reason?: RejectReason, comment?: string) => {
+    setChangeBusy(true);
+    try {
+      await api.put(`/api/a/${token}/decisions/${c.id}`, { version: c.version, action, reason_category: reason ?? null, comment: comment ?? null }, { auth: false });
+      const decision = { action, reason_category: reason ?? null, comment: comment ?? null, source: 'client' as const, decided_at: new Date().toISOString() };
+      setData((cur) => cur && { ...cur, creatives: cur.creatives.map((x) => x.id === c.id ? { ...x, status: action, decision } : x) });
+      setPreview((p) => p && p.id === c.id ? { ...p, status: action, decision } : p);
+      setSession((s) => ({ ...s, [action]: s[action] + 1 }));
+      setChanging(false);
+      toast(action === 'approved' ? 'Arte aprovada' : 'Pedido de ajuste registrado');
+    } catch (e) { toast(e instanceof Error ? e.message : 'Não foi possível alterar', 'error'); if (e instanceof ApiError) load(); }
+    finally { setChangeBusy(false); }
+  };
 
   const canSubmit = rating >= 1 && comment.trim().length >= 3;
   const submit = async () => {
@@ -183,8 +207,38 @@ export function ApprovePage() {
       )}
 
       {preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setPreview(null)}>
-          <div className={preview.type === 'story' ? 'h-[85vh] w-full max-w-sm' : 'w-full max-w-sm'} onClick={(e) => e.stopPropagation()}><PostCard c={preview} client={client} /></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => { setPreview(null); setChanging(false); }}>
+          <div className={`flex w-full max-w-sm flex-col gap-2 transition-[padding] ${preview.type === 'story' || (changing && !changeMin) ? 'h-[92vh]' : 'max-h-[92vh]'}`}
+            style={{ paddingBottom: changing && !changeMin ? changeSheetH : 0 }} onClick={(e) => e.stopPropagation()}>
+            {/* com a folha de recusa aberta, a coluna ganha altura fixa e reserva a altura da folha; só assim o post (h-full) encolhe de verdade */}
+            <div className="min-h-0 flex-1"><PostCard c={preview} client={client} /></div>
+            {/* decisão atual + troca (enquanto não enviada) */}
+            <div className="shrink-0 rounded-2xl bg-neutral-950 p-3 text-sm ring-1 ring-white/15">
+              {preview.status === 'pending' ? (
+                <div className="text-center text-xs text-neutral-400">Ainda sem resposta. Responda pela aba Aprovar.</div>
+              ) : (
+                <>
+                  <div className="mb-2 text-center text-xs text-neutral-300">
+                    {preview.status === 'rejected'
+                      ? <>Você pediu ajustes{preview.decision?.reason_category && <>: <b className="text-red-300">{REASON_LABEL[preview.decision.reason_category]}</b></>}</>
+                      : <>Você <b className="text-brand-400">aprovou</b> esta arte</>}
+                  </div>
+                  {changing ? (
+                    <div className="text-center text-xs text-neutral-400">Escolha o motivo na folha abaixo.</div>
+                  ) : canChange(preview) ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button disabled={changeBusy || preview.status === 'rejected'} onClick={() => setChanging(true)} className="rounded-xl border border-red-500/60 py-2.5 text-sm font-semibold text-red-300 disabled:opacity-35">✕ Pedir ajustes</button>
+                      <button disabled={changeBusy || preview.status !== 'rejected'} onClick={() => change(preview, 'approved')} className="rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black disabled:opacity-35">✓ Aprovar</button>
+                    </div>
+                  ) : (
+                    <div className="text-center text-[11px] text-neutral-500">Resposta já enviada para a agência. Para mudar, peça uma nova versão.</div>
+                  )}
+                </>
+              )}
+            </div>
+            <button onClick={() => { setPreview(null); setChanging(false); }} className="shrink-0 text-center text-xs text-neutral-400 underline">fechar</button>
+          </div>
+          <RejectSheet open={changing} busy={changeBusy} onMinimized={setChangeMin} onHeight={setChangeSheetH} onCancel={() => setChanging(false)} onConfirm={(r, cm) => change(preview, 'rejected', r, cm)} />
         </div>
       )}
     </Shell>
