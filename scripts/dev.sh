@@ -21,9 +21,14 @@ fi
 if [ -z "$IP" ]; then IP=$(hostname -I 2>/dev/null | awk '{print $1}' || true); fi
 IP="${IP:-localhost}"
 
-export API_URL="http://$IP:3001"
+# Porta da API: 3001, ou a primeira livre a partir dela (outros projetos locais costumam usar 3001).
+API_PORT="${DEV_API_PORT:-3001}"
+while lsof -nP -iTCP:"$API_PORT" -sTCP:LISTEN >/dev/null 2>&1; do API_PORT=$((API_PORT + 1)); done
+[ "$API_PORT" != "${DEV_API_PORT:-3001}" ] && echo "⚠ porta ${DEV_API_PORT:-3001} ocupada por outro processo; API vai usar a $API_PORT"
+export PORT="$API_PORT"
+export API_URL="http://$IP:$API_PORT"
 export FRONTEND_URL="http://$IP:5173"
-export VITE_API_URL="http://$IP:3001"
+export VITE_API_URL="http://$IP:$API_PORT"
 export SEED_EXAMPLES="${SEED_EXAMPLES:-true}"
 
 echo "▶ migrations"; npm run migrate -w server --silent
@@ -31,6 +36,7 @@ echo "▶ seed";       npm run seed -w server --silent
 echo
 echo "  Painel (computador):  http://localhost:5173/login"
 echo "  Painel (celular):     http://$IP:5173/login"
+echo "  API:                  http://$IP:$API_PORT"
 echo "  Login: admin@feeling.com.br / feeling123"
 echo "  Links de aprovação gerados agora apontam para http://$IP:5173/a/... (abrem no celular)"
 echo

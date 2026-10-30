@@ -73,6 +73,10 @@ Segue o Manual de Marca Feeling 2026: verde `#04D81A` só nos pontos de atençã
 
 **Alertas e histórico:** o topo do Kanban mostra só dois tipos de aviso, "cliente enviou a aprovação" (com a nota) e "cliente recusou N artes" (agrupado por lote), até serem dispensados (`events.dismissed_at`, separado do "visto" de Recusas). Todo o resto da movimentação fica na aba **Histórico**, só consulta, com filtros por cliente, origem (cliente/equipe) e tipo de evento.
 
+**Arquivar e excluir lote:** pelo menu ⋯ do card no Kanban ou pelos botões na página do lote, qualquer usuário (designer ou gestor). *Arquivar* tira o lote do Kanban, das listas e do link atual do cliente (o link passa a dizer que o lote foi arquivado), mas mantém tudo no banco e no Histórico; o botão "Arquivados" no Kanban mostra os do mês e permite restaurar. *Excluir* apaga artes, arquivos, versões, respostas, feedback e histórico de vez, com confirmação; se o link já foi enviado e ainda há arte pendente, exige digitar o nome do cliente.
+
+**Testar no celular:** se a porta 3001 estiver ocupada por outro projeto, `npm run dev:local` sobe a API na próxima porta livre e avisa.
+
 **Mudar a resposta:** na prévia de um post ou story (aba "Ver feed"), o cliente pode trocar aprovado por "pedir ajustes" e vice-versa enquanto a resposta não foi enviada (lote nunca enviado, ou decisão posterior ao último envio). Depois do envio a arte trava e a mudança passa a ser por nova versão. A troca registra `creative_decision_changed` e mantém Recusas e alertas coerentes. Cada swipe é salvo na hora; se ficar sem rede, a resposta fica guardada no navegador e é reenviada na próxima abertura. O gesto decide pela distância (40% da largura do card, ou 22% num flick rápido), não pela velocidade, e um arrasto que começa vertical não vira swipe. "Enviar aprovação" só é aceito quando não há arte pendente.
 5. Recusas aparecem em **Recusas** no painel. O designer sobe a v2 na arte; ela volta a pendente e o mesmo link passa a mostrar só o que está pendente.
 6. Quando 100% das artes vigentes estão aprovadas, o lote vai sozinho para **Aprovado**; o gestor move para **Programado** manualmente.
