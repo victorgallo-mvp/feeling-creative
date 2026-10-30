@@ -17,6 +17,7 @@ async function loadBatch(token: string) {
        FROM batches b JOIN clients c ON c.id = b.client_id
       WHERE b.link_token = $1 AND c.deleted_at IS NULL`, [token]);
   if (!b) throw notFound('Esse link não existe ou foi substituído. Peça um novo link para a agência.');
+  if (b.archived_at) throw notFound('Este lote foi arquivado pela agência. Se precisar, peça um novo link.');
   return b;
 }
 

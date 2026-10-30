@@ -21,7 +21,7 @@ alertsRouter.get('/', async (_req, res) => {
       FROM events e
       JOIN batches b ON b.id = e.batch_id
       JOIN clients c ON c.id = b.client_id
-     WHERE e.kind IN ('batch_submitted', 'creative_rejected') AND e.dismissed_at IS NULL AND c.deleted_at IS NULL
+     WHERE e.kind IN ('batch_submitted', 'creative_rejected') AND e.dismissed_at IS NULL AND c.deleted_at IS NULL AND b.archived_at IS NULL
      GROUP BY e.kind, e.batch_id, b.month, b.year, b.title, c.id, c.name, c.logo_key
      ORDER BY max(e.created_at) DESC
      LIMIT 50`);

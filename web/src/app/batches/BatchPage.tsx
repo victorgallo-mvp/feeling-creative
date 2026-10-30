@@ -8,6 +8,7 @@ import { EVENT_LABEL, KANBAN_LABEL, REASON_LABEL, STATUS_LABEL, TYPE_LABEL, fmtD
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions, copyText } from '../../components/LinkActions';
 import { ArrowButton } from '../../components/CarouselArrows';
+import { BatchActions } from './BatchActions';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4';
 
@@ -77,6 +78,7 @@ export function BatchPage() {
           </div>
         </div>
         <div className="flex-1" />
+        <BatchActions b={b} variant="buttons" afterDelete="home" />
         <Button variant="secondary" onClick={() => storyRef.current?.click()}>+ Stories</Button>
         <Button variant="secondary" onClick={() => carouselRef.current?.click()}>+ Carrossel</Button>
         <Button variant="secondary" onClick={() => fileRef.current?.click()}>+ Artes</Button>
@@ -86,6 +88,11 @@ export function BatchPage() {
         <input ref={storyRef} type="file" multiple accept={ACCEPT} hidden onChange={(e) => { upload(Array.from(e.target.files ?? []), 'each', 'story'); e.target.value = ''; }} />
       </div>
 
+      {b.archived_at && (
+        <section className="rounded-xl bg-neutral-100 px-4 py-3 text-sm text-neutral-700 ring-1 ring-neutral-300">
+          <b>Lote arquivado</b> em {fmtDate(b.archived_at, true)}: fora do Kanban e o link do cliente não abre. Tudo continua guardado; use "Restaurar" para trazer de volta.
+        </section>
+      )}
       {b.feedback_rating && (
         <section className="flex flex-wrap items-center gap-3 rounded-xl bg-black px-4 py-3 text-white ring-1 ring-brand-500/50">
           <span className="display text-lg text-brand-400">Feedback do cliente</span>

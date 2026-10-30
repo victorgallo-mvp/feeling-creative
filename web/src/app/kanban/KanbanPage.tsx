@@ -8,6 +8,7 @@ import { KANBAN_LABEL, MONTHS, daysAgo } from '../../lib/format';
 import { toast, toastError } from '../../components/toastStore';
 import { LinkActions } from '../../components/LinkActions';
 import { AlertsBar } from './AlertsBar';
+import { BatchActions } from '../batches/BatchActions';
 
 const COLUMNS: KanbanStatus[] = ['briefing', 'em_producao', 'enviado_aprovacao', 'aprovado', 'programado'];
 const MANUAL: KanbanStatus[] = ['briefing', 'em_producao', 'programado'];
@@ -17,8 +18,10 @@ export function KanbanPage() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [creating, setCreating] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const qc = useQueryClient();
-  const batches = useQuery({ queryKey: ['batches', month, year], queryFn: () => api.get<BatchSummary[]>(`/api/batches?month=${month}&year=${year}`) });
+  const batches = useQuery({ queryKey: ['batches', month, year, showArchived], queryFn: () => api.get<BatchSummary[]>(`/api/batches?month=${month}&year=${year}${showArchived ? '&archived=1' : ''}`) });
+  const archivedCount = useQuery({ queryKey: ['batches', 'archived-count', month, year], queryFn: () => api.get<BatchSummary[]>(`/api/batches?month=${month}&year=${year}&archived=1`), select: (d) => d.length });
 
   const move = useMutation({
     mutationFn: ({ id, status }: { id: number; status: KanbanStatus }) => api.patch(`/api/batches/${id}/kanban`, { kanban_status: status }),
@@ -45,9 +48,13 @@ export function KanbanPage() {
           <Select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="w-36">{MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</Select>
           <Select value={year} onChange={(e) => setYear(Number(e.target.value))} className="w-24">{years.map((y) => <option key={y} value={y}>{y}</option>)}</Select>
         </div>
+        <button type="button" onClick={() => setShowArchived((v) => !v)} className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${showArchived ? 'bg-neutral-900 text-white' : 'text-neutral-500 hover:bg-neutral-100'}`}>
+          {showArchived ? '← Voltar ao Kanban' : `Arquivados${archivedCount.data ? ` (${archivedCount.data})` : ''}`}
+        </button>
         <div className="flex-1" />
         <Button onClick={() => setCreating(true)}>+ Novo lote</Button>
       </div>
+      {showArchived && <p className="text-sm text-neutral-500">Lotes arquivados deste mês: fora do Kanban, mas com artes, respostas, feedback e histórico guardados. Restaure pelo menu ⋯ do card.</p>}
 
       {batches.isLoading ? <Spinner /> : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
@@ -84,6 +91,8 @@ function Card({ b, draggable }: { b: BatchSummary; draggable: boolean }) {
       <div className="flex items-center gap-2">
         <Avatar src={b.client_logo_url} name={b.client_name} size={28} />
         <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{b.client_name}</div>{b.title && <div className="truncate text-[11px] text-neutral-500">{b.title}</div>}</div>
+        {b.archived_at && <Badge>arquivado</Badge>}
+        <BatchActions b={b} />
       </div>
       <div className="mt-2 flex items-center gap-2 text-xs text-neutral-600">
         <span>{b.approved}/{b.total} aprovadas</span>

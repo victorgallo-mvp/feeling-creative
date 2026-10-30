@@ -1,7 +1,7 @@
 import { query, type Queryable, pool } from '../db.js';
 
 export type EventKind =
-  | 'batch_created' | 'kanban_moved' | 'link_sent' | 'link_viewed' | 'batch_submitted'
+  | 'batch_created' | 'batch_archived' | 'batch_unarchived' | 'batch_deleted' | 'kanban_moved' | 'link_sent' | 'link_viewed' | 'batch_submitted'
   | 'creative_uploaded' | 'version_uploaded' | 'creative_edited'
   | 'creative_approved' | 'creative_rejected' | 'creative_auto_approved' | 'creative_decision_changed';
 

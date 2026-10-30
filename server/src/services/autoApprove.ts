@@ -18,6 +18,7 @@ export async function runAutoApprove(now = new Date()) {
        JOIN creative_versions v ON v.creative_id = cr.id AND v.version = cr.current_version
       WHERE cl.auto_approve_enabled = true
         AND cl.deleted_at IS NULL
+        AND b.archived_at IS NULL
         AND cr.status = 'pending'
         AND b.link_sent_at IS NOT NULL
         AND GREATEST(b.link_sent_at, v.created_at) + (cl.auto_approve_days || ' days')::interval <= $1`,

@@ -32,8 +32,13 @@ function decorate(b: any) {
 }
 
 batchesRouter.get('/', async (req, res) => {
-  const q = z.object({ month: z.coerce.number().int().min(1).max(12).optional(), year: z.coerce.number().int().optional(), client_id: z.coerce.number().int().optional() }).parse(req.query);
+  const q = z.object({
+    month: z.coerce.number().int().min(1).max(12).optional(), year: z.coerce.number().int().optional(), client_id: z.coerce.number().int().optional(),
+    archived: z.enum(['1']).optional(), all: z.enum(['1']).optional(),
+  }).parse(req.query);
   const where: string[] = ['c.deleted_at IS NULL'];
+  if (q.archived) where.push('b.archived_at IS NOT NULL');
+  else if (!q.all) where.push('b.archived_at IS NULL');
   const params: any[] = [];
   if (q.month) { params.push(q.month); where.push(`b.month = $${params.length}`); }
   if (q.year) { params.push(q.year); where.push(`b.year = $${params.length}`); }
@@ -104,8 +109,23 @@ batchesRouter.patch('/:id', async (req, res) => {
   res.json(r);
 });
 
-batchesRouter.delete('/:id', requireRole('gestor'), async (req, res) => {
+/** Arquiva (some do Kanban, fica no banco) ou restaura. Qualquer usuário logado. */
+batchesRouter.patch('/:id/archive', async (req, res) => {
   const id = z.coerce.number().int().parse(req.params.id);
+  const { archived } = z.object({ archived: z.boolean() }).parse(req.body);
+  const row = await one(
+    `UPDATE batches SET archived_at = CASE WHEN $2 THEN coalesce(archived_at, now()) ELSE NULL END WHERE id = $1 RETURNING id, archived_at`, [id, archived]);
+  if (!row) throw notFound('Lote não encontrado');
+  await logEvent({ batch_id: id, kind: archived ? 'batch_archived' : 'batch_unarchived', actor_id: req.user!.id });
+  res.json({ ok: true, archived_at: row.archived_at });
+});
+
+/** Exclusão definitiva: artes, versões, respostas, feedback e histórico do lote. Liberada para designer e gestor. */
+batchesRouter.delete('/:id', async (req, res) => {
+  const id = z.coerce.number().int().parse(req.params.id);
+  const info = await one(`SELECT b.id, b.month, b.year, b.title, c.name AS client_name, (SELECT count(*)::int FROM creatives WHERE batch_id = b.id) AS total
+                           FROM batches b JOIN clients c ON c.id = b.client_id WHERE b.id = $1`, [id]);
+  if (!info) throw notFound('Lote não encontrado');
   const keys = await query<{ file_key: string; thumb_key: string | null }>(
     `SELECT a.file_key, a.thumb_key FROM creative_assets a
        JOIN creative_versions v ON v.id = a.version_id
@@ -113,5 +133,6 @@ batchesRouter.delete('/:id', requireRole('gestor'), async (req, res) => {
   const del = await query(`DELETE FROM batches WHERE id = $1 RETURNING id`, [id]);
   if (!del.length) throw notFound('Lote não encontrado');
   for (const k of keys) { await storage.delete(k.file_key); if (k.thumb_key) await storage.delete(k.thumb_key); }
-  res.status(204).end();
+  console.log(`Lote ${id} (${info.client_name} ${info.month}/${info.year}) excluído por ${req.user!.email}: ${info.total} arte(s), ${keys.length} arquivo(s)`);
+  res.json({ ok: true, client_name: info.client_name, month: info.month, year: info.year, title: info.title, total: info.total });
 });

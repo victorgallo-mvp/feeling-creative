@@ -30,6 +30,7 @@ export interface BatchSummary {
   id: number; client_id: number; month: number; year: number; title: string | null; kanban_status: KanbanStatus; status_changed_at: string;
   link_token: string | null; link_sent_at: string | null; viewed_at: string | null; submitted_at: string | null;
   feedback_rating: number | null; feedback_comment: string | null; feedback_at: string | null; feedback_read_at: string | null;
+  archived_at: string | null;
   client_name: string; client_logo_url: string | null; instagram_handle: string | null; whatsapp: string | null;
   designer_name: string | null; manager_name: string | null;
   total: number; approved: number; rejected: number; pending: number; stuck: boolean; link: string | null;

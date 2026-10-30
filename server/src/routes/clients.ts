@@ -23,7 +23,7 @@ const SELECT = `
             SELECT b.id, b.month, b.year, b.title, b.link_token, b.link_sent_at, b.kanban_status,
                    (SELECT count(*)::int FROM creatives WHERE batch_id = b.id) AS total,
                    (SELECT count(*)::int FROM creatives WHERE batch_id = b.id AND status = 'pending') AS pending
-              FROM batches b WHERE b.client_id = c.id AND b.link_token IS NOT NULL
+              FROM batches b WHERE b.client_id = c.id AND b.link_token IS NOT NULL AND b.archived_at IS NULL
              ORDER BY b.link_sent_at DESC NULLS LAST, b.id DESC LIMIT 1) lb) AS latest_batch
     FROM clients c
     LEFT JOIN users d ON d.id = c.designer_id

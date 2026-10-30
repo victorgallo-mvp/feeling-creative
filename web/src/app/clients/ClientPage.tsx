@@ -12,7 +12,7 @@ import { NewBatchModal } from '../kanban/KanbanPage';
 export function ClientPage() {
   const { id } = useParams();
   const client = useQuery({ queryKey: ['client', id], queryFn: () => api.get<Client>(`/api/clients/${id}`) });
-  const batches = useQuery({ queryKey: ['batches', 'client', id], queryFn: () => api.get<BatchSummary[]>(`/api/batches?client_id=${id}`) });
+  const batches = useQuery({ queryKey: ['batches', 'client', id], queryFn: () => api.get<BatchSummary[]>(`/api/batches?client_id=${id}&all=1`) });
   const [creating, setCreating] = useState(false);
   const now = new Date();
 
@@ -66,7 +66,7 @@ export function ClientPage() {
             {batches.data?.map((b) => (
               <tr key={b.id} className="hover:bg-neutral-50">
                 <td className="px-4 py-2"><Link to={`/app/lotes/${b.id}`} className="font-medium hover:underline">{monthLabel(b.month, b.year)}</Link>{b.title && <div className="text-xs text-neutral-500">{b.title}</div>}</td>
-                <td className="px-4 py-2"><Badge tone={b.kanban_status === 'aprovado' || b.kanban_status === 'programado' ? 'green' : b.kanban_status === 'enviado_aprovacao' ? (b.stuck ? 'red' : 'amber') : 'neutral'}>{KANBAN_LABEL[b.kanban_status]}</Badge></td>
+                <td className="px-4 py-2"><Badge tone={b.kanban_status === 'aprovado' || b.kanban_status === 'programado' ? 'green' : b.kanban_status === 'enviado_aprovacao' ? (b.stuck ? 'red' : 'amber') : 'neutral'}>{KANBAN_LABEL[b.kanban_status]}</Badge>{b.archived_at && <Badge>arquivado</Badge>}</td>
                 <td className="px-4 py-2 text-neutral-600">{b.approved}/{b.total} aprovadas{b.rejected > 0 && <span className="text-red-700"> · {b.rejected} recusada{b.rejected > 1 && 's'}</span>}</td>
                 <td className="px-4 py-2 text-neutral-600">{b.link_sent_at ? fmtDate(b.link_sent_at, true) : '—'}{b.viewed_at && <div className="text-xs text-neutral-400">aberto {fmtDate(b.viewed_at, true)}</div>}</td>
                 <td className="px-4 py-2">{b.feedback_rating ? <div title={b.feedback_comment ?? ''}><Stars value={b.feedback_rating} size={14} />{b.feedback_comment && <div className="max-w-48 truncate text-xs text-neutral-500">“{b.feedback_comment}”</div>}</div> : <span className="text-xs text-neutral-400">—</span>}</td>
